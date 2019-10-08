@@ -48,7 +48,7 @@ class StagecontrolMainWindow(QtWidgets.QMainWindow):
 class StagecontrolGui(GUIBase):
 
     # declare connectors
-    #qdplotlogic1 = Connector(interface='QdplotLogic')
+    stagecontrollogic = Connector(interface='StagecontrolLogic')
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
@@ -60,12 +60,23 @@ class StagecontrolGui(GUIBase):
         """ Definition and initialisation of the GUI.
         """
 
-        #self._qdplot_logic = self.qdplotlogic1()
+        self._stagecontrol_logic = self.stagecontrollogic()
 
-        #####################
-        # Configuring the dock widgets
-        # Use the inherited class 'CounterMainWindow' to create the GUI window
+        #Create main window instance
         self._mw = StagecontrolMainWindow()
+
+        #Connect UI events
+        self._mw.stop_btn.clicked.connect(self.stop_movement)
+
+        self._mw.x_left_btn.pressed.connect(self.x_left)
+        self._mw.x_right_btn.pressed.connect(self.x_right)
+        self._mw.y_up_btn.pressed.connect(self.y_up)
+        self._mw.y_down_btn.pressed.connect(self.y_down)
+
+        self._mw.x_left_btn.released.connect(self.direction_btn_released)
+        self._mw.x_right_btn.released.connect(self.direction_btn_released)
+        self._mw.y_up_btn.released.connect(self.direction_btn_released)
+        self._mw.y_down_btn.released.connect(self.direction_btn_released)
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -79,3 +90,30 @@ class StagecontrolGui(GUIBase):
         """ Deactivate the module
         """
         self._mw.close()
+
+    #Button callbacks
+    def stop_movement(self):
+        """Stop button callback"""
+
+        print("Stop")
+
+    def x_left(self):
+        """Direction button callback"""
+        self._stagecontrol_logic.stage_logic_method()
+        print("x-axis left")
+
+    def x_right(self):
+        """Direction button callback"""
+        print("x-axis right")
+
+    def y_up(self):
+        """Direction button callback"""
+        print("y-axis up")
+
+    def y_down(self):
+        """Direction button callback"""
+        print("y-axis down")
+
+    def direction_btn_released(self):
+        """Direction button release callback"""
+        print("released")

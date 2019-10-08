@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>StagecontrolWindow</class>
+ <widget class="QMainWindow" name="StagecontrolWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>556</width>
-    <height>275</height>
+    <height>547</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Stage control</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QGroupBox" name="groupBox_2">
@@ -20,13 +20,13 @@
       <x>270</x>
       <y>10</y>
       <width>271</width>
-      <height>141</height>
+      <height>191</height>
      </rect>
     </property>
     <property name="title">
      <string>Position</string>
     </property>
-    <widget class="QLCDNumber" name="lcdNumber_2">
+    <widget class="QLCDNumber" name="y_pos">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -62,7 +62,7 @@
       <string>x</string>
      </property>
     </widget>
-    <widget class="QLCDNumber" name="lcdNumber">
+    <widget class="QLCDNumber" name="x_pos">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -98,7 +98,7 @@
       <string>µm</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_7">
+    <widget class="QPushButton" name="goto_btn">
      <property name="geometry">
       <rect>
        <x>130</x>
@@ -108,10 +108,10 @@
       </rect>
      </property>
      <property name="text">
-      <string>Go to</string>
+      <string>Go to (absolute)</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="x_pos_entry">
      <property name="geometry">
       <rect>
        <x>140</x>
@@ -121,7 +121,7 @@
       </rect>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_2">
+    <widget class="QLineEdit" name="y_pos_entry">
      <property name="geometry">
       <rect>
        <x>140</x>
@@ -157,6 +157,19 @@
       <string>µm</string>
      </property>
     </widget>
+    <widget class="QPushButton" name="rel_move_btn">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>140</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Move (relative)</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
@@ -175,7 +188,7 @@
       <rect>
        <x>30</x>
        <y>30</y>
-       <width>183</width>
+       <width>181</width>
        <height>100</height>
       </rect>
      </property>
@@ -184,35 +197,35 @@
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
       <item row="1" column="2">
-       <widget class="QPushButton" name="pushButton_5">
+       <widget class="QPushButton" name="x_right_btn">
         <property name="text">
          <string>→</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="stop_btn">
         <property name="text">
          <string>Stop</string>
         </property>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="x_left_btn">
         <property name="text">
          <string>←</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QPushButton" name="pushButton_4">
+       <widget class="QPushButton" name="y_up_btn">
         <property name="text">
          <string>↑</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="y_down_btn">
         <property name="text">
          <string>↓</string>
         </property>
@@ -233,7 +246,7 @@
       <string>Speed</string>
      </property>
     </widget>
-    <widget class="QSlider" name="horizontalSlider">
+    <widget class="QSlider" name="speed_slider">
      <property name="geometry">
       <rect>
        <x>40</x>
@@ -247,6 +260,124 @@
      </property>
     </widget>
    </widget>
+   <widget class="QGroupBox" name="groupBox_3">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>210</y>
+      <width>521</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Saved points</string>
+    </property>
+    <widget class="QTableWidget" name="pos_table">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>30</y>
+       <width>341</width>
+       <height>241</height>
+      </rect>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="rowCount">
+      <number>0</number>
+     </property>
+     <property name="columnCount">
+      <number>3</number>
+     </property>
+     <column>
+      <property name="text">
+       <string>x (µm)</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>y (µm)</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Description</string>
+      </property>
+     </column>
+    </widget>
+    <widget class="QPushButton" name="save_current_btn">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>30</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save current</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="update_btn">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>70</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Update selected</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="goto_selected_btn">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>110</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Go to selected</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="save_btn">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>200</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Save to file</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="load_btn">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>240</y>
+       <width>113</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Load from file</string>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -254,7 +385,7 @@
      <x>0</x>
      <y>0</y>
      <width>556</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

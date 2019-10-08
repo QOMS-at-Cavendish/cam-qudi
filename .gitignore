@@ -32,3 +32,5 @@
 # log files
 *.log
 *.log.*
+
+.vscode
