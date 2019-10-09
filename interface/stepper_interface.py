@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This module contains the Qudi interface file for confocal stepper.
+This module contains the Qudi interface file for a stepper (e.g. Attocube)
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import abc
 from core.interface import abstract_interface_method
 from core.meta import InterfaceMetaclass
 
-class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
+class StepperInterface(metaclass=InterfaceMetaclass):
     """ This is the Interface class to define the controls for the confocal microscope using a 
     stepper hardware.
     """
@@ -44,17 +44,7 @@ class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
     # ============================== Stepper Commands ====================================
 
     @abc.abstractmethod
-    def change_step_size(self, axis, stepsize, temp):
-        """Changes the step size of the attocubes according to a list give in the config file
-        @param str  axis: axis  for which steps size is to be changed
-        @param float stepsize: The wanted stepsize in nm
-        @param float temp: The estimated temperature of the attocubes
-
-        @return: float, float : Actual stepsize and used temperature"""
-        pass
-
-    @abc.abstractmethod
-    def set_step_amplitude(self, axis, voltage=None):
+    def set_step_amplitude(self, axis, voltage):
         """Sets the step voltage/amplitude for an axis
 
         @param str axis: the axis to be changed
@@ -73,7 +63,7 @@ class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def set_step_freq(self, axis, freq=None):
+    def set_step_freq(self, axis, freq):
         """Sets the step frequency for an axis
 
         @param str axis: the axis to be changed
@@ -93,10 +83,10 @@ class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
 
     @abc.abstractmethod
     def set_axis_mode(self, axis, mode):
-        """Changes Attocube axis mode
+        """Change axis mode
 
         @param str axis: axis to be changed, can only be part of dictionary axes
-        @param str mode: mode to be set
+        @param str mode: mode to be set (hardware-dependent)
         @return int: error code (0: OK, -1:error)
         """
         pass
@@ -107,16 +97,6 @@ class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
 
         @param str axis: the axis for which the frequency is to be checked
         @return float: the mode of the axis, -1 for error
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_amplitude_range_stepper(self, myrange=None):
-        """ Sets the voltage range of the attocubes.
-
-        @param float [2] myrange: array containing lower and upper limit
-
-        @return int: error code (0:OK, -1:error)
         """
         pass
 
@@ -137,117 +117,41 @@ class ConfocalStepperInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abc.abstractmethod
-    def get_stepper_axes(self):
-        """"
-        Checks which axes of the hardware have a reaction by the hardware
-
-         @return list: list of booleans for each possible axis, if true axis exists
-
-         On error, return empty list
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_stepper_axes_use(self):
-        """ Find out how the axes of the stepping device are used for confocal and their names.
-
-        @return list(str): list of axis dictionary
-
-        Example:
-          For 3D confocal microscopy in cartesian coordinates, ['x':1, 'y':2, 'z':3] is a sensible
-          value.
-          If you only care about the number of axes and not the assignment and names
-          use get_stepper_axes
-          On error, return an empty list.
-        """
-        pass
-
-    @abc.abstractmethod
-    def move_attocube(self, axis, mode=True, direction=True, steps=1):
-        """Moves steppers either continuously or by a number of steps
-        in one off 2 directions
+    def move_stepper(self, axis, mode='step', reverse=False, steps=1):
+        """Moves stepper either continuously or by a number of steps in a particular axis
 
         @param str axis: axis to be moved, can only be part of dictionary axes
-        @param bool mode: Sets mode of stepper. True: Stepping, False: Continuous
-        @param bool direction: True for one, False for other movement direction
-        @param int steps: number of steps to be moved, ignore for continuous mode
+        @param str mode: Sets movement mode. 'step': Stepping, 'cont': Continuous
+        @param str direction: 'out': move out, 'in': move in.
+        @param int steps: number of steps to be moved (in stepping mode)
         @return int:  error code (0: OK, -1:error)
         """
         pass
 
     @abc.abstractmethod
-    def stop_attocube_movement(self, axis):
+    def stop_axis(self, axis):
         """Stops motion on specified axis
 
         @param str axis: can only be part of dictionary axes
-        @return int: error code (0: OK, -1:error)"""
-        pass
-
-    @abc.abstractmethod
-    def stop_all_attocube_motion(self):
-        """Stops any motion of the steppers
-        @return 0
         """
         pass
 
     @abc.abstractmethod
-    def get_amplitude_range_stepper(self):
+    def stop_all(self):
+        """Stops motion on all axes
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_amplitude_range(self):
         """Returns the current possible stepping voltage range of the stepping device for all axes
-        @return list: voltage range of scanner
+        @return dict: step voltage range of each axis, as set in config file
         """
         pass
 
     @abc.abstractmethod
-    def get_freq_range_stepper(self):
+    def get_freq_range(self):
         """Returns the current possible frequency range of the stepping device for all axes
-        @return List
+        @return dict: step frequency range of each axis, as set in config file
         """
         pass
-
-    @abc.abstractmethod
-    def get_position_feedback(self):
-        """Checks if the hardware is a closed loop hardware with position feedback
-        return bool: if True the hardware has a position feedback"""
-        pass
-
-    @abc.abstractmethod
-    def get_position_range_stepper(self, axis_name):
-        """ Returns the physical range of the stepper.
-
-        @param str axis_name: the axis for which the range is to be checked
-
-        @return dict: key: axis name as sting (e.g. "x"), value the stepper range in mm
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_position_range_stepper(self, axis, my_range=None):
-        """ Sets the physical range of the stepper.
-
-        @param str axis: the axis for which the range is to be changed
-        @param float [2] my_range: 2 value float array containing the new lower and upper limit
-
-        @return int: error code (0:OK, -1:error)
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_DC_in(self, axis):
-        """ Checks the status of the DC input for a specific axis
-
-        @param str axis: the axis for which the input is to be checked
-        @return bool: True for on, False for off or error
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_DC_in(self, axis, on):
-        """Changes stepper axis DC input status
-
-        @param str axis: axis to be changed, can only be part of dictionary axes
-        @param bool on: if True is turned on, False is turned off
-        @return int: error code (0: OK, -1:error)
-        """
-        pass
-
-	
