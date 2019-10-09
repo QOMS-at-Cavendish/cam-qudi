@@ -227,7 +227,7 @@ class APTMotor:
         self.verbose = False
         self.label = label
         self.setSerialNumber(serialnumber)
-        self._wait_until_done = True
+        self._wait_until_done = False
 
         # all apt stages are either in mm or in degree and
         # since mm is not an SI unit it has to be converted
@@ -712,7 +712,8 @@ class APTMotor:
             raise Exception('Please connect first! Use initializeHardwareDevice')
 
         # TODO: a proper home position has to be set, not just zero.
-        self.move_abs(0.0)
+        # self.move_abs(0.0)
+        self.aptdll.MOT_MoveHome(self.SerialNum, self._wait_until_done)
 
     def _test_bit(self, int_val, offset):
         """ Check a bit in an integer number at position offset.

@@ -21,11 +21,13 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from logic.generic_logic import GenericLogic
 from collections import OrderedDict
-
+from core.connector import Connector
 
 class StagecontrolLogic(GenericLogic):
     """ Logic module for moving mechanical stage.
     """
+
+    stagehardware = Connector(interface='MotorInterface')
 
     def __init__(self, config, **kwargs):
         """ Create logic object
@@ -38,6 +40,7 @@ class StagecontrolLogic(GenericLogic):
     def on_activate(self):
         """ Prepare logic module for work.
         """
+        self._stage_hw = self.stagehardware()
         print("Logic module activated")
         pass
         
@@ -46,5 +49,5 @@ class StagecontrolLogic(GenericLogic):
         """
         pass
 
-    def stage_logic_method(self):
-        print("Stage logic method called")
+    def stage_logic_method(self): 
+        print(self._stage_hw.get_status())
