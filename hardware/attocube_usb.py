@@ -28,49 +28,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import serial
 import time
 
-from core.module import Base
-from core.configoption import ConfigOption
-from interface.confocal_stepper_interface import ConfocalStepperInterface
-import numpy as np
 
-
-class AttoCubeStepper(Base, ConfocalStepperInterface):
-    """
-    Attocube stepper class
-    Example config:
-
-    attocube:
-        module.Class: 'attocube_usb.AttoCubeStepper'
-        port:'COM4'
-        voltage_range_stepper:[0,60]
-        z_axis_channel:3
-    """
-
-    _modtype = 'AttoCubeStepper'
-    _modclass = 'hardware'
-
-    _port = ConfigOption('port', missing='error')
-    _voltage_range_stepper = ConfigOption('voltage_range_stepper', [0,60], missing='warn')
-    _z_axis_channel = ConfigOption('z_axis_channel', missing='error')
-
-    def on_activate(self):
-        """Module start-up"""
-
-        config = self.getConfiguration()
-        self._port = config['port']
-        self._vrange = config['voltage_range_stepper']
-        self._zchannel = config['z_axis_channel']
-
-        # Test config read
-        self.log.info("port: {} vrange: {} zchannel: {}".format(self._port,self._vrange,self._zchannel))
-
-        # Connect serial port
-        self.connection = AttocubeComm(port=self._port)
-
-
-    def on_deactivate(self):
-        """Module shutdown"""
-        pass
 
 
 class AttocubeComm(serial.Serial):
@@ -104,14 +62,13 @@ class AttocubeComm(serial.Serial):
         # Write command
         self.write(cmd_encoded)
 
+        time.sleep(0.05)
+
         # Read-back:
-        read_string = []
-        for byte in self.read(): 
-            if byte != b'>':
-                read_bytes.append(byte)
-            else:
-                break
-        
+        read_bytes = self.read(self.in_waiting)
+
+        print(read_bytes)
         read_string = read_bytes.decode().split("\r\n")
 
+        print(read_string[-2])
         return read_string
