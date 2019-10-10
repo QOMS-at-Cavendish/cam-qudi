@@ -30,11 +30,34 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import serial
 import time
 
+import functools
+
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.stepper_interface import StepperInterface
 import numpy as np
 
+# Decorator to check if axis is correct
+def check_axis(func):
+    @functools.wraps(func)
+    def check(self,axis,*args,**kwargs):
+        if axis in self.axes:
+            func(self,axis,*args,**kwargs)
+    return check
+
+# Decorator to check serial connection & do exception handling
+def check_connected(func):
+    @functools.wraps(func)
+    def check(self,*args,**kwargs):
+        try:
+            if not self.connection.is_open:
+                self.connection.connect(self.port)
+            func(self,*args,**kwargs)
+        except serial.SerialTimeoutException:
+            self.log.error("SerialTimeoutException while communicating on {}".format(self.port))
+        except serial.SerialException:
+            self.log.error("SerialException while communicating on {}".format(self.port))
+    return check
 
 class AttoCubeStepper(Base,StepperInterface):
     """
@@ -66,35 +89,44 @@ class AttoCubeStepper(Base,StepperInterface):
 
         # Read config
         config = self.getConfiguration()
-        self._port = config['port']
-        self._vrange = config['step_voltage_range']
-        self._frange = config['frequency_range']
-        self._axes = config['axes']
+        self.port = config['port']
+        self.vrange = config['step_voltage_range']
+        self.frange = config['frequency_range']
+        self.axes = config['axes']
 
         # Set default step voltage and frequency for missing axes config
         default_vrange = [0,60]
         default_frange = [0,10000]
         
-        for axis in self._axes.keys():
-            if not axis in self._vrange:
+        for axis in self.axes.keys():
+            if not axis in self.vrange:
                 self.log.warn("No step voltage range given for axis {}. Using default {}.".format(axis,default_vrange))
-                self._vrange[axis] = default_vrange
+                self.vrange[axis] = default_vrange
             
-            if not axis in self._frange:
+            if not axis in self.frange:
                 self.log.warn("No frequency range given for axis {}. Using default {}.".format(axis,default_frange))
-                self._frange[axis] = default_frange
+                self.frange[axis] = default_frange
             
-        # Connect serial port
-        #self.connection = AttocubeComm(port=self._port)
+        # Create serial port
+        self.connection = AttocubeComm()
+
+        # Note that port connection is handled in check_connection decorator
+        # (see top of file) - this should decorate any function that needs
+        # a serial connection to the Attocube.
 
 
     def on_deactivate(self):
         """Module shutdown"""
-        pass
+        self.reset_hardware()
 
     def reset_hardware(self):
-        self.log.info('Attocube reset not implemented')
+        if self.connection.is_open:
+            self.connection.reset_input_buffer()
+            self.connection.reset_output_buffer()
+            self.connection.close()
 
+    @check_axis
+    @check_connected
     def set_step_amplitude(self,axis,voltage):
         """Set step amplitude for a particular axis
         @param str axis: axis identifier as defined in config file
@@ -102,6 +134,8 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def get_step_amplitude(self,axis,voltage):
         """Get step amplitude set for a particular axis
         @param str axis: axis identifier as defined in config file
@@ -109,6 +143,8 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def set_step_frequency(self,axis,frequency):
         """Get step amplitude set for a particular axis
         @param str axis: axis identifier as defined in config file
@@ -116,6 +152,8 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def get_step_frequency(self,axis):
         """Get step amplitude set for a particular axis
         @param str axis: axis identifier as defined in config file
@@ -123,6 +161,8 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def set_axis_mode(self,axis,mode):
         """Set axis mode
 
@@ -131,6 +171,8 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
     
+    @check_axis
+    @check_connected
     def get_axis_mode(self,axis):
         """Get axis mode
 
@@ -140,7 +182,7 @@ class AttoCubeStepper(Base,StepperInterface):
         raise NotImplementedError
 
     def get_stepper_axes(self):
-        """ Find out how many axes the scanning device is using for confocal and their names.
+        """ Get list of axis names.
 
         @return list(str): list of axis names
 
@@ -152,19 +194,22 @@ class AttoCubeStepper(Base,StepperInterface):
 
           On error, return an empty list.
         """
-        return self._axes.keys()
+        return self.axes.keys()
 
-    def move_stepper(self):
+    @check_axis
+    @check_connected
+    def move_stepper(self,axis,mode,direction='out',steps=1):
         """Moves stepper either continuously or by a number of steps in a particular axis
 
         @param str axis: axis identifier as defined in config file
         @param str mode: Sets movement mode. 'step': Stepping, 'cont': Continuous
         @param str direction: 'out': move out, 'in': move in.
         @param int steps: number of steps to be moved (in stepping mode)
-        @return int:  error code (0: OK, -1:error)
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def stop_axis(self,axis):
         """Stops motion on specified axis
 
@@ -172,22 +217,29 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def stop_all(self):
         """Stops motion on all axes
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def get_amplitude_range(self):
         """Returns the current possible stepping voltage range of the stepping device for all axes
         @return dict: step voltage range of each axis, as set in config file
         """
         raise NotImplementedError
 
+    @check_axis
+    @check_connected
     def get_freq_range(self):
         """Returns the current possible frequency range of the stepping device for all axes
         @return dict: step frequency range of each axis, as set in config file
         """
         raise NotImplementedError
+
 class AttocubeComm(serial.Serial):
     """
     Class for controlling attocube over serial connection.
@@ -198,7 +250,7 @@ class AttocubeComm(serial.Serial):
         which case it opens immediately."""
         serial.Serial.__init__(self,port,timeout=timeout, write_timeout=timeout,*args,**kwargs)
 
-    def connect(self,port='COM4'):
+    def connect(self,port='COM3'):
         """Start serial connection"""
         self.setPort(port)
         self.open()
