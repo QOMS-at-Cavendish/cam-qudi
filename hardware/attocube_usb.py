@@ -45,7 +45,7 @@ def check_axis(func):
             func(self,axis,*args,**kwargs)
     return check
 
-# Decorator to check serial connection & do exception handling
+# Decorator to check serial connection & do serial exception handling
 def check_connected(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
@@ -80,8 +80,8 @@ class AttoCubeStepper(Base,StepperInterface):
     _modclass = 'hardware'
 
     _port = ConfigOption('port', missing='error')
-    _voltage_range = ConfigOption('step_voltage_range', [0,60], missing='warn')
-    _frequency_range = ConfigOption('frequency_range', [0,10000], missing='warn')
+    _voltage_range = ConfigOption('step_voltage_range', {})
+    _frequency_range = ConfigOption('frequency_range', {})
     _axes = ConfigOption('axes', {}, missing='error')
 
     def on_activate(self):
@@ -94,9 +94,9 @@ class AttoCubeStepper(Base,StepperInterface):
         self.frange = config['frequency_range']
         self.axes = config['axes']
 
-        # Set default step voltage and frequency for missing axes config
-        default_vrange = [0,60]
-        default_frange = [0,10000]
+        # Set conservative default step voltage and frequency for missing axes config
+        default_vrange = [0,40]
+        default_frange = [0,1000]
         
         for axis in self.axes.keys():
             if not axis in self.vrange:
@@ -132,7 +132,14 @@ class AttoCubeStepper(Base,StepperInterface):
         @param str axis: axis identifier as defined in config file
         @param float voltage: step voltage
         """
-        raise NotImplementedError
+        # Check voltage in range
+        if float(voltage) < min(self.vrange[axis]) or float(voltage) > max(self.vrange[axis]):
+            self.log.error("Could not set voltage for axis {}. Voltage {} outside configured range {}".format(axis,voltage,self.vrange[axis]))
+            return
+        
+        # Construct command
+        cmd = "setv " + str(self.axes[axis]) + str(voltage)
+        self.connection.send_cmd(cmd)
 
     @check_axis
     @check_connected
@@ -150,7 +157,14 @@ class AttoCubeStepper(Base,StepperInterface):
         @param str axis: axis identifier as defined in config file
         @return float frequency: step frequency
         """
-        raise NotImplementedError
+        # Check frequency in range
+        if float(frequency) < min(self.frange[axis]) or float(frequency) > max(self.frange[axis]):
+            self.log.error("Could not set frequency for axis {}. Frequency {} outside configured range {}".format(axis,voltage,self.vrange[axis]))
+            return
+        
+        # Construct command
+        cmd = "setf " + str(self.axes[axis]) + str(frequency)
+        self.connection.send_cmd(cmd)
 
     @check_axis
     @check_connected
