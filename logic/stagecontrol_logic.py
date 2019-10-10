@@ -24,10 +24,10 @@ from collections import OrderedDict
 from core.connector import Connector
 
 class StagecontrolLogic(GenericLogic):
-    """ Logic module for moving mechanical stage.
+    """ Logic module for moving Attocube.
     """
 
-    stagehardware = Connector(interface='MotorInterface')
+    stagehardware = Connector(interface='StepperInterface')
 
     def __init__(self, config, **kwargs):
         """ Create logic object
@@ -40,14 +40,28 @@ class StagecontrolLogic(GenericLogic):
     def on_activate(self):
         """ Prepare logic module for work.
         """
-        self._stage_hw = self.stagehardware()
+        self.stage_hw = self.stagehardware()
+        
         print("Logic module activated")
-        pass
+        #self.stage_hw.set_axis_mode('z','stp')
         
     def on_deactivate(self):
-        """ Deactivate modeule.
+        """ Deactivate module.
         """
         pass
 
-    def stage_logic_method(self): 
-        print(self._stage_hw.get_status())
+    def start_jog(self,axis,direction):
+        #For safety try moving 5 steps for first implementation
+        print("jog {} {}".format(axis,direction))
+        self.stage_hw.move_stepper(axis,'step',direction,steps=5)
+    
+    def step(self,axis,direction,steps):
+        print("step {} {} steps {}".format(axis,steps,direction))
+        self.stage_hw.move_stepper(axis,'step',direction,steps=steps)
+
+    def stop(self):
+        self.stage_hw.stop_all()
+
+    def set_axis_params(self,axis,volt,freq):
+        self.stage_hw.set_step_amplitude(axis,volt)
+        self.stage_hw.set_step_freq(axis,freq)

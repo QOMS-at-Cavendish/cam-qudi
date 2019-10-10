@@ -26,10 +26,20 @@ from itertools import cycle
 from qtpy import QtWidgets
 from qtpy import QtCore
 from qtpy import uic
+import functools
 
 from core.connector import Connector
 from gui.guibase import GUIBase
 
+# Decorator to catch ValueError exceptions in functions which cast UI input text to other types.
+def value_error_handler(func):
+    @functools.wraps(func)
+    def check(self,*args,**kwargs):
+        try:
+            func(self,*args,**kwargs)
+        except ValueError:
+            self.log.warn("ValueError when converting UI input - check input values")
+    return check
 
 class StagecontrolMainWindow(QtWidgets.QMainWindow):
 
@@ -60,23 +70,32 @@ class StagecontrolGui(GUIBase):
         """ Definition and initialisation of the GUI.
         """
 
-        self._stagecontrol_logic = self.stagecontrollogic()
+        self.stagecontrol_logic = self.stagecontrollogic()
 
-        #Create main window instance
+        # Create main window instance
         self._mw = StagecontrolMainWindow()
 
-        #Connect UI events
+        # Connect UI events
+
+        # Direction jog buttons
         self._mw.stop_btn.clicked.connect(self.stop_movement)
 
         self._mw.x_left_btn.pressed.connect(self.x_left)
         self._mw.x_right_btn.pressed.connect(self.x_right)
         self._mw.y_up_btn.pressed.connect(self.y_up)
         self._mw.y_down_btn.pressed.connect(self.y_down)
+        self._mw.z_up_btn.pressed.connect(self.z_up)
+        self._mw.z_down_btn.pressed.connect(self.z_down)
 
         self._mw.x_left_btn.released.connect(self.direction_btn_released)
         self._mw.x_right_btn.released.connect(self.direction_btn_released)
         self._mw.y_up_btn.released.connect(self.direction_btn_released)
         self._mw.y_down_btn.released.connect(self.direction_btn_released)
+        self._mw.z_up_btn.released.connect(self.direction_btn_released)
+        self._mw.z_down_btn.released.connect(self.direction_btn_released)
+
+        # Parameter set buttons
+        self._mw.set_z_btn.clicked.connect(self.set_z_params)
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -94,12 +113,10 @@ class StagecontrolGui(GUIBase):
     #Button callbacks
     def stop_movement(self):
         """Stop button callback"""
-
-        print("Stop")
+        self.stagecontrol_logic.stop()
 
     def x_left(self):
         """Direction button callback"""
-        self._stagecontrol_logic.stage_logic_method()
         print("x-axis left")
 
     def x_right(self):
@@ -114,6 +131,28 @@ class StagecontrolGui(GUIBase):
         """Direction button callback"""
         print("y-axis down")
 
+    def z_up(self):
+        """Direction button callback"""
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('z','out')
+        else:
+            self.stagecontrol_logic.step('z','out',1)
+
+    def z_down(self):
+        """Direction button callback"""
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('z','in')
+        else:
+            self.stagecontrol_logic.step('z','in',1)
+
     def direction_btn_released(self):
         """Direction button release callback"""
         print("released")
+        self.stop_movement()
+
+    @value_error_handler
+    def set_z_params(self,msg):
+        freq = float(self._mw.z_freq.text())
+        volt = float(self._mw.z_voltage.text())
+        print("setting z volt: {} freq: {}".format(volt,freq))
+        self.stagecontrol_logic.set_axis_params('z',volt,freq)

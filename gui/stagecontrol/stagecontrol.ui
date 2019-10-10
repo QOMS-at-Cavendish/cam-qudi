@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>556</width>
+    <width>668</width>
     <height>547</height>
    </rect>
   </property>
@@ -17,10 +17,10 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>270</x>
+      <x>380</x>
       <y>10</y>
       <width>271</width>
-      <height>191</height>
+      <height>211</height>
      </rect>
     </property>
     <property name="title">
@@ -41,7 +41,7 @@
       <rect>
        <x>10</x>
        <y>70</y>
-       <width>60</width>
+       <width>16</width>
        <height>16</height>
       </rect>
      </property>
@@ -102,7 +102,7 @@
      <property name="geometry">
       <rect>
        <x>130</x>
-       <y>100</y>
+       <y>170</y>
        <width>113</width>
        <height>32</height>
       </rect>
@@ -170,14 +170,73 @@
       <string>Move (relative)</string>
      </property>
     </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>110</y>
+       <width>16</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>z</string>
+     </property>
+    </widget>
+    <widget class="QLCDNumber" name="z_pos">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>110</y>
+       <width>64</width>
+       <height>23</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>110</y>
+       <width>31</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>µm</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="z_pos_entry">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>110</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_10">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>110</y>
+       <width>21</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>µm</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>10</y>
-      <width>231</width>
-      <height>191</height>
+      <width>351</width>
+      <height>181</height>
      </rect>
     </property>
     <property name="title">
@@ -188,7 +247,7 @@
       <rect>
        <x>30</x>
        <y>30</y>
-       <width>181</width>
+       <width>183</width>
        <height>100</height>
       </rect>
      </property>
@@ -233,149 +292,178 @@
       </item>
      </layout>
     </widget>
-    <widget class="QLabel" name="label">
+    <widget class="QGroupBox" name="groupBox_4">
      <property name="geometry">
       <rect>
-       <x>40</x>
-       <y>140</y>
-       <width>60</width>
-       <height>16</height>
+       <x>219</x>
+       <y>20</y>
+       <width>111</width>
+       <height>111</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Z-axis</string>
+     </property>
+     <widget class="QWidget" name="gridLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>91</width>
+        <height>66</height>
+       </rect>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <widget class="QPushButton" name="z_up_btn">
+         <property name="text">
+          <string>Up</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="z_down_btn">
+         <property name="text">
+          <string>Down</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QRadioButton" name="continuous">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>150</y>
+       <width>101</width>
+       <height>20</height>
       </rect>
      </property>
      <property name="text">
-      <string>Speed</string>
+      <string>Continuous</string>
      </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <attribute name="buttonGroup">
+      <string notr="true">buttonGroup</string>
+     </attribute>
     </widget>
-    <widget class="QSlider" name="speed_slider">
+    <widget class="QRadioButton" name="singlestep">
      <property name="geometry">
       <rect>
-       <x>40</x>
-       <y>160</y>
-       <width>160</width>
-       <height>22</height>
+       <x>180</x>
+       <y>150</y>
+       <width>100</width>
+       <height>20</height>
       </rect>
      </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+     <property name="text">
+      <string>Single step</string>
      </property>
+     <attribute name="buttonGroup">
+      <string notr="true">buttonGroup</string>
+     </attribute>
     </widget>
    </widget>
-   <widget class="QGroupBox" name="groupBox_3">
+   <widget class="QGroupBox" name="groupBox_7">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>210</y>
-      <width>521</width>
-      <height>291</height>
+      <y>190</y>
+      <width>351</width>
+      <height>161</height>
      </rect>
     </property>
     <property name="title">
-     <string>Saved points</string>
+     <string>Attocube parameters</string>
     </property>
-    <widget class="QTableWidget" name="pos_table">
+    <widget class="QWidget" name="gridLayoutWidget_5">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>30</y>
-       <width>341</width>
-       <height>241</height>
+       <width>331</width>
+       <height>130</height>
       </rect>
      </property>
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::SingleSelection</enum>
-     </property>
-     <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectRows</enum>
-     </property>
-     <property name="rowCount">
-      <number>0</number>
-     </property>
-     <property name="columnCount">
-      <number>3</number>
-     </property>
-     <column>
-      <property name="text">
-       <string>x (µm)</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>y (µm)</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Description</string>
-      </property>
-     </column>
-    </widget>
-    <widget class="QPushButton" name="save_current_btn">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>30</y>
-       <width>113</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Save current</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="update_btn">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>70</y>
-       <width>113</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Update selected</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="goto_selected_btn">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>110</y>
-       <width>113</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Go to selected</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="save_btn">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>200</y>
-       <width>113</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Save to file</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="load_btn">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>240</y>
-       <width>113</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Load from file</string>
-     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>z</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_12">
+        <property name="text">
+         <string>x</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="set_x_btn">
+        <property name="text">
+         <string>Set</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QLineEdit" name="z_voltage"/>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLineEdit" name="y_voltage"/>
+      </item>
+      <item row="2" column="3">
+       <widget class="QPushButton" name="set_y_btn">
+        <property name="text">
+         <string>Set</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="y_freq"/>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLineEdit" name="z_freq"/>
+      </item>
+      <item row="3" column="3">
+       <widget class="QPushButton" name="set_z_btn">
+        <property name="text">
+         <string>Set</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>y</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="x_voltage"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="x_freq"/>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Frequency (Hz)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="label_14">
+        <property name="text">
+         <string>Step amplitude (V)</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
@@ -384,13 +472,39 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>556</width>
-     <height>21</height>
+     <width>668</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>x_pos_entry</tabstop>
+  <tabstop>y_pos_entry</tabstop>
+  <tabstop>z_pos_entry</tabstop>
+  <tabstop>rel_move_btn</tabstop>
+  <tabstop>goto_btn</tabstop>
+  <tabstop>x_freq</tabstop>
+  <tabstop>x_voltage</tabstop>
+  <tabstop>set_x_btn</tabstop>
+  <tabstop>y_freq</tabstop>
+  <tabstop>y_voltage</tabstop>
+  <tabstop>set_y_btn</tabstop>
+  <tabstop>z_freq</tabstop>
+  <tabstop>z_voltage</tabstop>
+  <tabstop>set_z_btn</tabstop>
+  <tabstop>x_left_btn</tabstop>
+  <tabstop>y_up_btn</tabstop>
+  <tabstop>x_right_btn</tabstop>
+  <tabstop>y_down_btn</tabstop>
+  <tabstop>stop_btn</tabstop>
+  <tabstop>z_up_btn</tabstop>
+  <tabstop>z_down_btn</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>
