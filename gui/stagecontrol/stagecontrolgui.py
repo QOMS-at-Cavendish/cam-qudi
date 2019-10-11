@@ -147,12 +147,10 @@ class StagecontrolGui(GUIBase):
 
     def direction_btn_released(self):
         """Direction button release callback"""
-        print("released")
         self.stop_movement()
 
     @value_error_handler
     def set_z_params(self,msg):
         freq = float(self._mw.z_freq.text())
         volt = float(self._mw.z_voltage.text())
-        print("setting z volt: {} freq: {}".format(volt,freq))
         self.stagecontrol_logic.set_axis_params('z',volt,freq)

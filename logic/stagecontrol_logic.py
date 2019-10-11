@@ -41,8 +41,7 @@ class StagecontrolLogic(GenericLogic):
         """ Prepare logic module for work.
         """
         self.stage_hw = self.stagehardware()
-        
-        print("Logic module activated")
+
         self.stage_hw.set_axis_mode('z','stp')
         
     def on_deactivate(self):
@@ -51,11 +50,9 @@ class StagecontrolLogic(GenericLogic):
         pass
 
     def start_jog(self,axis,direction):
-        print("jog {} {}".format(axis,direction))
         self.stage_hw.move_stepper(axis,'cont',direction)
     
     def step(self,axis,direction,steps):
-        print("step {} {} steps {}".format(axis,steps,direction))
         self.stage_hw.move_stepper(axis,'step',direction,steps=steps)
 
     def stop(self):

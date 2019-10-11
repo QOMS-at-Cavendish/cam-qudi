@@ -315,8 +315,6 @@ class AttocubeComm(serial.Serial):
         # Read-back:
         read_bytes = self.read(self.in_waiting)
 
-        print(read_bytes)
         read_string = read_bytes.decode().split("\r\n")
 
-        print(read_string[-2])
         return read_string
