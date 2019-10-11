@@ -134,16 +134,16 @@ class StagecontrolGui(GUIBase):
     def z_up(self):
         """Direction button callback"""
         if self._mw.continuous.isChecked():
-            self.stagecontrol_logic.start_jog('z','out')
+            self.stagecontrol_logic.start_jog('z','in')
         else:
-            self.stagecontrol_logic.step('z','out',1)
+            self.stagecontrol_logic.step('z','in',1)
 
     def z_down(self):
         """Direction button callback"""
         if self._mw.continuous.isChecked():
-            self.stagecontrol_logic.start_jog('z','in')
+            self.stagecontrol_logic.start_jog('z','out')
         else:
-            self.stagecontrol_logic.step('z','in',1)
+            self.stagecontrol_logic.step('z','out',1)
 
     def direction_btn_released(self):
         """Direction button release callback"""

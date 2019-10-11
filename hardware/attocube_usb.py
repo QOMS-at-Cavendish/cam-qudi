@@ -140,7 +140,7 @@ class AttoCubeStepper(Base,StepperInterface):
             return
         
         # Construct command
-        cmd = "setv " + str(self.axes[axis]) + str(voltage)
+        cmd = "setv {} {}".format(self.axes[axis], voltage)
         self.connection.send_cmd(cmd)
 
     @check_axis
@@ -262,7 +262,7 @@ class AttoCubeStepper(Base,StepperInterface):
         """Stops motion on all axes
         """
         for axis in self.axes.items():
-            cmd = "stop {}".format(axis)
+            cmd = "stop {}".format(axis[1])
             self.connection.send_cmd(cmd)
 
     @check_connected
