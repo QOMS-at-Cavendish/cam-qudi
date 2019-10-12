@@ -22,12 +22,18 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from logic.generic_logic import GenericLogic
 from collections import OrderedDict
 from core.connector import Connector
+from qtpy import QtCore
 
 class StagecontrolLogic(GenericLogic):
     """ Logic module for moving Attocube.
     """
 
     stagehardware = Connector(interface='StepperInterface')
+    counterlogic = Connector(interface='CounterLogic')
+
+    # Signals to trigger GUI updates
+    sigOptimisationDone = QtCore.Signal()
+    sigCountDataUpdated = QtCore.Signal()
 
     def __init__(self, config, **kwargs):
         """ Create logic object
@@ -41,8 +47,6 @@ class StagecontrolLogic(GenericLogic):
         """ Prepare logic module for work.
         """
         self.stage_hw = self.stagehardware()
-
-        self.stage_hw.set_axis_mode('z','stp')
         
     def on_deactivate(self):
         """ Deactivate module.
@@ -61,3 +65,12 @@ class StagecontrolLogic(GenericLogic):
     def set_axis_params(self,axis,volt,freq):
         self.stage_hw.set_step_amplitude(axis,volt)
         self.stage_hw.set_step_freq(axis,freq)
+
+    def optimise_z(self,steps,step_amplitude):
+        """Perform z sweep while recording count rate to optimise focus"""
+        self.stage_hw.set_step_amplitude('z',step_amplitude)
+
+        # Move to end of search range
+        self.stage_hw.move_stepper('z','step','out',steps=steps)
+
+        # Start QTimer

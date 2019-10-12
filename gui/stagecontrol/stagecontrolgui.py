@@ -26,6 +26,7 @@ from itertools import cycle
 from qtpy import QtWidgets
 from qtpy import QtCore
 from qtpy import uic
+import pyqtgraph as pg
 import functools
 
 from core.connector import Connector
@@ -75,7 +76,15 @@ class StagecontrolGui(GUIBase):
         # Create main window instance
         self._mw = StagecontrolMainWindow()
 
+        # Set up counts vs z plot
+        self.plot = self._mw.plot
+        self.plot.setLabel('left', 'Counts')
+        self.plot.setLabel('bottom', 'Z position', units='steps')
+        self.pen = pg.mkPen('09F', width=4)
+
+        ###################
         # Connect UI events
+        ###################
 
         # Direction jog buttons
         self._mw.stop_btn.clicked.connect(self.stop_movement)
@@ -118,6 +127,9 @@ class StagecontrolGui(GUIBase):
     def x_left(self):
         """Direction button callback"""
         print("x-axis left")
+        x = np.arange(1,6,0.1)
+        y = np.sin(x)
+        self.plot.plot(x,y,pen=self.pen)
 
     def x_right(self):
         """Direction button callback"""
