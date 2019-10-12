@@ -77,10 +77,17 @@ class StagecontrolGui(GUIBase):
         self._mw = StagecontrolMainWindow()
 
         # Set up counts vs z plot
-        self.plot = self._mw.plot
-        self.plot.setLabel('left', 'Counts')
-        self.plot.setLabel('bottom', 'Z position', units='steps')
-        self.pen = pg.mkPen('09F', width=4)
+        self._mw.plot.setLabel('left', 'Counts', units='cps')
+        self._mw.plot.setLabel('bottom', 'Z position', units='steps')
+        self.plotdata = pg.PlotDataItem(pen=pg.mkPen('0BF', width=4))
+        self._mw.plot.addItem(self.plotdata)
+
+        # Flag to keep track of optimisation state
+        self.sweep_run = False
+
+        # Connect events from z-optimisation routines
+        self.stagecontrol_logic.sigCountDataUpdated.connect(self.update_plot)
+        self.stagecontrol_logic.sigOptimisationDone.connect(self.optimisation_done)
 
         ###################
         # Connect UI events
@@ -106,6 +113,9 @@ class StagecontrolGui(GUIBase):
         # Parameter set buttons
         self._mw.set_z_btn.clicked.connect(self.set_z_params)
 
+        # Optimisation start/stop button
+        self._mw.optimisation_btn.clicked.connect(self.optimise_btn_clicked)
+
     def show(self):
         """Make window visible and put it above all other windows.
         """
@@ -127,9 +137,6 @@ class StagecontrolGui(GUIBase):
     def x_left(self):
         """Direction button callback"""
         print("x-axis left")
-        x = np.arange(1,6,0.1)
-        y = np.sin(x)
-        self.plot.plot(x,y,pen=self.pen)
 
     def x_right(self):
         """Direction button callback"""
@@ -166,3 +173,25 @@ class StagecontrolGui(GUIBase):
         freq = float(self._mw.z_freq.text())
         volt = float(self._mw.z_voltage.text())
         self.stagecontrol_logic.set_axis_params('z',volt,freq)
+
+    @value_error_handler
+    def optimise_btn_clicked(self,msg):
+        if self.sweep_run == False:
+            steps = int(self._mw.optimise_steps.text())
+            self.stagecontrol_logic.optimise_z(steps)
+            self.sweep_run = True
+            self._mw.optimisation_btn.setText("Stop optimisation")
+        else:
+            self.stagecontrol_logic.abort_optimisation()
+            self.sweep_run = False
+            self._mw.optimisation_btn.setText("Start optimisation")
+
+    def update_plot(self):
+        counts = self.stagecontrol_logic.sweep_counts
+        sweep_len = self.stagecontrol_logic.sweep_length
+        steps = np.arange(-sweep_len,len(counts)-sweep_len)
+        self.plotdata.setData(steps, counts)
+
+    def optimisation_done(self):
+        self._mw.optimisation_btn.setText("Start optimisation")
+        self.sweep_run = False

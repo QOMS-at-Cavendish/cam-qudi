@@ -479,7 +479,7 @@
       <x>380</x>
       <y>230</y>
       <width>331</width>
-      <height>341</height>
+      <height>291</height>
      </rect>
     </property>
     <property name="title">
@@ -489,82 +489,59 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>160</y>
+       <y>110</y>
        <width>291</width>
        <height>161</height>
       </rect>
      </property>
     </widget>
-    <widget class="QWidget" name="gridLayoutWidget_3">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>30</y>
-       <width>297</width>
-       <height>91</height>
-      </rect>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="coarse_steps"/>
-      </item>
-      <item row="2" column="2">
-       <widget class="QLineEdit" name="fine_voltage"/>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="label_18">
-        <property name="text">
-         <string>Amplitude (V)</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_15">
-        <property name="text">
-         <string>Coarse</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_19">
-        <property name="text">
-         <string>Fine</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="fine_steps"/>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="coarse_voltage"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_16">
-        <property name="text">
-         <string>Search</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="label_17">
-        <property name="text">
-         <string>Steps (number)</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
     <widget class="QPushButton" name="optimisation_btn">
      <property name="geometry">
       <rect>
-       <x>100</x>
-       <y>120</y>
+       <x>20</x>
+       <y>70</y>
        <width>151</width>
        <height>31</height>
       </rect>
      </property>
      <property name="text">
       <string>Start Optimisation</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_15">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>40</y>
+       <width>60</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Search ±</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="optimise_steps">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>40</y>
+       <width>113</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_16">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>40</y>
+       <width>91</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>steps</string>
      </property>
     </widget>
    </widget>
