@@ -24,6 +24,10 @@ import abc
 from core.interface import abstract_interface_method
 from core.meta import InterfaceMetaclass
 
+# Custom StepperError exception for general hardware failures
+class StepperError(Exception):
+    pass
+
 class StepperInterface(metaclass=InterfaceMetaclass):
     """ This is the Interface class to define the controls for the confocal microscope using a 
     stepper hardware.

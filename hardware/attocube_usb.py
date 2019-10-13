@@ -35,6 +35,7 @@ import functools
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.stepper_interface import StepperInterface
+from interface.stepper_interface import StepperError
 import numpy as np
 
 # Decorator to check if axis is correct
@@ -43,9 +44,14 @@ def check_axis(func):
     def check(self,axis,*args,**kwargs):
         if axis in self.axes:
             func(self,axis,*args,**kwargs)
+        else:
+            msg = 'Axis {} is not defined in config file dictionary.'.format(axis)
+            self.log.error(msg)
+            raise KeyError(msg)
     return check
 
 # Decorator to check serial connection & do serial exception handling
+# Raises a generic StepperError instead of SerialError for hardware independence
 def check_connected(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
@@ -54,9 +60,13 @@ def check_connected(func):
                 self.connection.connect(self.port)
             func(self,*args,**kwargs)
         except serial.SerialTimeoutException:
-            self.log.error("SerialTimeoutException while communicating on {}".format(self.port))
+            msg = "SerialTimeoutException while communicating on {}".format(self.port)
+            self.log.error(msg)
+            raise StepperError(msg)
         except serial.SerialException:
-            self.log.error("SerialException while communicating on {}".format(self.port))
+            msg = "SerialException while communicating on {}".format(self.port)
+            self.log.error(msg)
+            raise StepperError(msg)
     return check
 
 class AttoCubeStepper(Base,StepperInterface):
