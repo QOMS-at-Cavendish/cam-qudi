@@ -103,11 +103,11 @@ class StagecontrolLogic(GenericLogic):
         self.stage_hw.set_step_amplitude(axis,volt)
         self.stage_hw.set_step_freq(axis,freq)
 
-    @hwerror_handler
+
     def get_axis_params(self,axis):
         volt = self.stage_hw.get_step_amplitude(axis)
         freq = self.stage_hw.get_step_freq(axis)
-        return [volt, freq]
+        return volt, freq
 
     def optimise_z(self,steps):
         """Perform z sweep while recording count rate to optimise focus"""
@@ -171,7 +171,9 @@ class StagecontrolLogic(GenericLogic):
 
                 # Do the movement
                 try:
-                    self.stage_hw.move_stepper('z','step','out',steps=steps)
+                    if steps > 0:
+                        # Move stage if needed (note steps=0 seems to give continuous motion)
+                        self.stage_hw.move_stepper('z','step','out',steps=steps)
                 except StepperError as err:
                     self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
                 self.sigOptimisationDone.emit()

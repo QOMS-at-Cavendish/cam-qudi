@@ -89,6 +89,9 @@ class StagecontrolGui(GUIBase):
         self.stagecontrol_logic.sigCountDataUpdated.connect(self.update_plot)
         self.stagecontrol_logic.sigOptimisationDone.connect(self.optimisation_done)
 
+        # Get params on load
+        self.update_params(None)
+
         ###################
         # Connect UI events
         ###################
@@ -111,6 +114,8 @@ class StagecontrolGui(GUIBase):
         self._mw.z_down_btn.released.connect(self.direction_btn_released)
 
         # Parameter get/set buttons
+        self._mw.set_x_btn.clicked.connect(self.set_x_params)
+        self._mw.set_y_btn.clicked.connect(self.set_y_params)
         self._mw.set_z_btn.clicked.connect(self.set_z_params)
         self._mw.get_param_btn.clicked.connect(self.update_params)
 
@@ -136,20 +141,30 @@ class StagecontrolGui(GUIBase):
         self.stagecontrol_logic.stop()
 
     def x_left(self):
-        """Direction button callback"""
-        print("x-axis left")
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('x','out')
+        else:
+            self.stagecontrol_logic.step('x','out',1)
 
     def x_right(self):
-        """Direction button callback"""
-        print("x-axis right")
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('x','in')
+        else:
+            self.stagecontrol_logic.step('x','in',1)
 
     def y_up(self):
         """Direction button callback"""
-        print("y-axis up")
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('y','out')
+        else:
+            self.stagecontrol_logic.step('y','out',1)
 
     def y_down(self):
         """Direction button callback"""
-        print("y-axis down")
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.start_jog('y','in')
+        else:
+            self.stagecontrol_logic.step('y','in',1)
 
     def z_up(self):
         """Direction button callback"""
@@ -168,6 +183,18 @@ class StagecontrolGui(GUIBase):
     def direction_btn_released(self):
         """Direction button release callback"""
         self.stop_movement()
+
+    @value_error_handler
+    def set_x_params(self,msg):
+        freq = float(self._mw.x_freq.text())
+        volt = float(self._mw.x_voltage.text())
+        self.stagecontrol_logic.set_axis_params('x',volt,freq)
+
+    @value_error_handler
+    def set_y_params(self,msg):
+        freq = float(self._mw.y_freq.text())
+        volt = float(self._mw.y_voltage.text())
+        self.stagecontrol_logic.set_axis_params('y',volt,freq)
 
     @value_error_handler
     def set_z_params(self,msg):
@@ -189,6 +216,14 @@ class StagecontrolGui(GUIBase):
 
     def update_params(self,msg):
         """Get parameters from stepper & update GUI"""
+        volt, freq = self.stagecontrol_logic.get_axis_params('x')
+        self._mw.x_freq.setText(freq)
+        self._mw.x_voltage.setText(volt)
+
+        volt, freq = self.stagecontrol_logic.get_axis_params('y')
+        self._mw.y_freq.setText(freq)
+        self._mw.y_voltage.setText(volt)
+
         volt, freq = self.stagecontrol_logic.get_axis_params('z')
         self._mw.z_freq.setText(freq)
         self._mw.z_voltage.setText(volt)

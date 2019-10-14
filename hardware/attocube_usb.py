@@ -43,7 +43,7 @@ def check_axis(func):
     @functools.wraps(func)
     def check(self,axis,*args,**kwargs):
         if axis in self.axes:
-            func(self,axis,*args,**kwargs)
+            return func(self,axis,*args,**kwargs)
         else:
             msg = 'Axis {} is not defined in config file dictionary.'.format(axis)
             self.log.error(msg)
@@ -58,7 +58,7 @@ def check_connected(func):
         try:
             if not self.connection.is_open:
                 self.connection.connect(self.port)
-            func(self,*args,**kwargs)
+            return func(self,*args,**kwargs)
         except serial.SerialTimeoutException:
             msg = "SerialTimeoutException while communicating on {}".format(self.port)
             self.log.error(msg)
@@ -162,7 +162,6 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         cmd = "getv {}".format(self.axes[axis])
         return_str = self.connection.send_cmd(cmd)
-
         # This relies on a particular form of return value, so is fragile to Attocube
         # controller changes.
         return return_str[-3].split(' ')[-2]
@@ -259,6 +258,10 @@ class AttoCubeStepper(Base,StepperInterface):
             cmd = "stepd "
         else:
             self.log.error("Direction should be one of 'in' or 'out' when calling move_stepper")
+            return
+
+        if steps < 1:
+            self.log.error("Cannot move less than 1 step")
             return
 
         cmd += "{} ".format(self.axes[axis])
