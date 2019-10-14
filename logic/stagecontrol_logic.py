@@ -103,6 +103,12 @@ class StagecontrolLogic(GenericLogic):
         self.stage_hw.set_step_amplitude(axis,volt)
         self.stage_hw.set_step_freq(axis,freq)
 
+    @hwerror_handler
+    def get_axis_params(self,axis):
+        volt = self.stage_hw.get_step_amplitude(axis)
+        freq = self.stage_hw.get_step_freq(axis)
+        return [volt, freq]
+
     def optimise_z(self,steps):
         """Perform z sweep while recording count rate to optimise focus"""
 
@@ -135,7 +141,7 @@ class StagecontrolLogic(GenericLogic):
         # Check if counter logic module is locked (i.e. if counter is running)
         if self.counter_logic.module_state() == 'locked':
             # Get last count value and store
-            counts = self.counter_logic.countdata_smoothed[-1, -2]
+            counts = self.counter_logic.countdata_smoothed[-2, -2]
             self.sweep_counts.append(counts)
 
             # Emit event that can be caught by GUI to update
@@ -161,6 +167,7 @@ class StagecontrolLogic(GenericLogic):
                 # Find index of maximum point, and calculate how far back to move
                 max_index = np.argmax(self.sweep_counts)
                 steps = 2*self.sweep_length - max_index
+                print('Optimum at {} steps from current position'.format(steps))
 
                 # Do the movement
                 try:

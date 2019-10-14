@@ -155,12 +155,17 @@ class AttoCubeStepper(Base,StepperInterface):
 
     @check_axis
     @check_connected
-    def get_step_amplitude(self,axis,voltage):
+    def get_step_amplitude(self,axis):
         """Get step amplitude set for a particular axis
         @param str axis: axis identifier as defined in config file
         @param float voltage: step voltage
         """
-        raise NotImplementedError
+        cmd = "getv {}".format(self.axes[axis])
+        return_str = self.connection.send_cmd(cmd)
+
+        # This relies on a particular form of return value, so is fragile to Attocube
+        # controller changes.
+        return return_str[-3].split(' ')[-2]
 
     @check_axis
     @check_connected
@@ -185,7 +190,13 @@ class AttoCubeStepper(Base,StepperInterface):
         @param str axis: axis identifier as defined in config file
         @return float frequency: step frequency
         """
-        raise NotImplementedError
+        cmd = "getf {}".format(self.axes[axis])
+        return_str = self.connection.send_cmd(cmd)
+
+        # This relies on a particular form of return value, so is fragile to Attocube
+        # controller changes. There is also currently a bug in the ANC-300 return
+        # value for frequencies specifically, which may be fixed in future firmware.
+        return return_str[-2].split(' ')[-2]
 
     @check_axis
     @check_connected
@@ -210,7 +221,12 @@ class AttoCubeStepper(Base,StepperInterface):
         @param str axis: axis identifier as defined in config file
         @return str mode: mode to be set
         """
-        raise NotImplementedError
+        cmd = "getm {}".format(self.axes[axis])
+        return_str = self.connection.send_cmd(cmd)
+
+        # This relies on a particular form of return value, so is fragile to Attocube
+        # controller changes.
+        return return_str[-3].split(' ')[-1]
 
     def get_stepper_axes(self):
         """ Get list of axis names.
@@ -310,7 +326,7 @@ class AttocubeComm(serial.Serial):
         @return 0
         Throws SerialException if port is not working properly
         """
-        # Encode command
+        # Encode command and ensure it ends with CRLF
         cmd_encoded = cmd.encode('ascii')+b"\r\n"
 
         # Reset buffers

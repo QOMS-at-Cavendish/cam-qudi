@@ -464,7 +464,7 @@
        </widget>
       </item>
       <item row="0" column="3">
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="get_param_btn">
         <property name="text">
          <string>Get</string>
         </property>

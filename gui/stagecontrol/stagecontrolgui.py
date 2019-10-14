@@ -110,8 +110,9 @@ class StagecontrolGui(GUIBase):
         self._mw.z_up_btn.released.connect(self.direction_btn_released)
         self._mw.z_down_btn.released.connect(self.direction_btn_released)
 
-        # Parameter set buttons
+        # Parameter get/set buttons
         self._mw.set_z_btn.clicked.connect(self.set_z_params)
+        self._mw.get_param_btn.clicked.connect(self.update_params)
 
         # Optimisation start/stop button
         self._mw.optimisation_btn.clicked.connect(self.optimise_btn_clicked)
@@ -185,6 +186,13 @@ class StagecontrolGui(GUIBase):
             self.stagecontrol_logic.abort_optimisation()
             self.sweep_run = False
             self._mw.optimisation_btn.setText("Start optimisation")
+
+    def update_params(self,msg):
+        """Get parameters from stepper & update GUI"""
+        volt, freq = self.stagecontrol_logic.get_axis_params('z')
+        self._mw.z_freq.setText(freq)
+        self._mw.z_voltage.setText(volt)
+
 
     def update_plot(self):
         counts = self.stagecontrol_logic.sweep_counts
