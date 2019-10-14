@@ -36,7 +36,7 @@ def thread_lock(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
         with self.threadlock:
-            func(self,*args,**kwargs)
+            return func(self,*args,**kwargs)
     return check
 
 # Decorator to throw away exceptions from hardware for non-critical operations
@@ -44,7 +44,7 @@ def hwerror_handler(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
         try:
-            func(self,*args,**kwargs)
+            return func(self,*args,**kwargs)
         except StepperError:
             pass
     return check
@@ -103,7 +103,7 @@ class StagecontrolLogic(GenericLogic):
         self.stage_hw.set_step_amplitude(axis,volt)
         self.stage_hw.set_step_freq(axis,freq)
 
-
+    @hwerror_handler
     def get_axis_params(self,axis):
         volt = self.stage_hw.get_step_amplitude(axis)
         freq = self.stage_hw.get_step_freq(axis)
