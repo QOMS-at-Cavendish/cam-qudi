@@ -368,6 +368,9 @@ class ConfocalGui(GUIBase):
         self._mw.z_min_InputWidget.editingFinished.connect(self.change_z_image_range)
         self._mw.z_max_InputWidget.editingFinished.connect(self.change_z_image_range)
 
+        self._mw.centre_scan_btn.clicked.connect(self.set_confocal_to_centre)
+        self._mw.range_50um_btn.clicked.connect(self.set_50um_range)
+
         # Connect the change of the viewed area to an adjustment of the ROI:
         self.adjust_cursor_roi = True
 
@@ -770,6 +773,8 @@ class ConfocalGui(GUIBase):
         self._mw.z_min_InputWidget.setEnabled(False)
         self._mw.z_max_InputWidget.setEnabled(False)
 
+        self._mw.range_50um_btn.setEnabled(False)
+
         self._mw.xy_res_InputWidget.setEnabled(False)
         self._mw.z_res_InputWidget.setEnabled(False)
 
@@ -799,6 +804,8 @@ class ConfocalGui(GUIBase):
         self._mw.y_max_InputWidget.setEnabled(True)
         self._mw.z_min_InputWidget.setEnabled(True)
         self._mw.z_max_InputWidget.setEnabled(True)
+
+        self._mw.range_50um_btn.setEnabled(True)
 
         self._mw.xy_res_InputWidget.setEnabled(True)
         self._mw.z_res_InputWidget.setEnabled(True)
@@ -1862,3 +1869,29 @@ class ConfocalGui(GUIBase):
         if tag == 'logic':
             self.disable_scan_actions()
 
+    def set_confocal_to_centre(self):
+        """ Set current confocal position to centre of scan range """
+        x_max = self._mw.x_max_InputWidget.value()
+        x_min = self._mw.x_min_InputWidget.value()
+        y_max = self._mw.y_max_InputWidget.value()
+        y_min = self._mw.y_min_InputWidget.value()
+
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+
+        self._mw.x_current_InputWidget.setValue(x_range/2)
+        self._mw.y_current_InputWidget.setValue(y_range/2)
+
+        self._mw.x_current_InputWidget.editingFinished.emit()
+        self._mw.y_current_InputWidget.editingFinished.emit()
+
+    def set_50um_range(self):
+        """ Set current scan range to 50 um """
+        self._mw.x_max_InputWidget.setValue(5E-5)
+        self._mw.y_max_InputWidget.setValue(5E-5)
+        
+        self._mw.x_min_InputWidget.setValue(0)
+        self._mw.y_min_InputWidget.setValue(0)
+
+        self._mw.x_max_InputWidget.editingFinished.emit()
+        self._mw.y_max_InputWidget.editingFinished.emit()
