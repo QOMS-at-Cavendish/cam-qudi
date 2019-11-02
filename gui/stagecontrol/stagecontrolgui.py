@@ -60,6 +60,7 @@ class StagecontrolGui(GUIBase):
 
     # declare connectors
     stagecontrollogic = Connector(interface='StagecontrolLogic')
+    xboxlogic = Connector(interface='XboxLogic')
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
@@ -72,6 +73,10 @@ class StagecontrolGui(GUIBase):
         """
 
         self.stagecontrol_logic = self.stagecontrollogic()
+        self.xbox_logic = self.xboxlogic()
+
+        self.xbox_logic.sigButtonPress.connect(self.xbox_button_press)
+        self.xbox_logic.sigJoystickMoved.connect(self.xbox_joystick_move)
 
         # Create main window instance
         self._mw = StagecontrolMainWindow()
@@ -134,6 +139,30 @@ class StagecontrolGui(GUIBase):
         """ Deactivate the module
         """
         self._mw.close()
+
+    # Xbox control commands
+    def xbox_button_press(self,button):
+        if not self._mw.xbox_enable.isChecked():
+            # If Xbox control checkbox is unticked, then return
+            return
+
+        if button == 'left_down':
+            # D-pad down
+            self.stagecontrol_logic.step('z','out',1)
+
+        elif button == 'left_up':
+            # D-pad up
+            self.stagecontrol_logic.step('z','in',1)
+
+        elif button == 'right_right':
+            # B button
+            self.stop_movement()
+    
+    def xbox_joystick_move(self,joystick_state):
+        if not self._mw.xbox_enable.isChecked():
+            # If Xbox control checkbox is unticked, then return
+            return
+        pass
 
     #Button callbacks
     def stop_movement(self):
