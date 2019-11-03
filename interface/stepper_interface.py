@@ -20,142 +20,184 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import abc
 from core.interface import abstract_interface_method
 from core.meta import InterfaceMetaclass
 
-# Custom StepperError exception for general hardware failures
 class StepperError(Exception):
+    """ 
+    StepperError exception for hardware errors.
+    """
+    pass
+
+class StepperOutOfRange(StepperError):
+    """ 
+    StepperOutOfRange exception if requested value is out of range.
+    Raise when e.g. setting out-of-range config option or position.
+    """
+    pass
+
+class AxisError(StepperError):
+    """ 
+    AxisError exception if axis is not configured (e.g. if axis str is not
+    found in the config file)
+    """
+    pass
+
+class AxisConfigError(AxisError):
+    """ 
+    AxisConfigError exception if config option is passed but is not
+    implemented in hardware.
+    """
     pass
 
 class StepperInterface(metaclass=InterfaceMetaclass):
-    """ This is the Interface class to define the controls for the confocal microscope using a 
-    stepper hardware.
+    """ Interface to stepper hardware (e.g. Attocube)
     """
 
-    _modtype = 'ConfocalStepperInterface'
+    _modtype = 'StepperInterface'
     _modclass = 'interface'
 
-    @abc.abstractmethod
-    def reset_hardware(self):
-        """ Resets the hardware, so the connection is lost and other programs
-            can access it.
+    @abstract_interface_method
+    def get_axes(self):
+        """
+        Get configured axes.
 
-        @return int: error code (0:OK, -1:error)
+        @return list: List of strings defining each axis.
         """
         pass
 
-    # ============================== Stepper Commands ====================================
+    @abstract_interface_method
+    def move_steps(self, axis, steps=1):
+        """ 
+        Move a specified number of steps
+        Generally, this will be for open-loop movements.
 
-    @abc.abstractmethod
-    def set_step_amplitude(self, axis, voltage):
-        """Sets the step voltage/amplitude for an axis
-
-        @param str axis: the axis to be changed
-        @param int voltage: the stepping amplitude/voltage the axis should be set to
-        @return int: error code (0:OK, -1:error)
+        @param str axis: Axis to move
+        @param int steps: Number of steps to move (sign indicates direction)
         """
         pass
 
-    @abc.abstractmethod
-    def get_step_amplitude(self, axis):
-        """ Reads the amplitude of a step for a specific axis from the device
+    @abstract_interface_method
+    def start_continuous_motion(self, axis, reverse=False):
+        """ 
+        Start continuous motion on the specified axis and direction.
+        Continues until stopped by calling stop_axis or stop_all.
 
-        @param str axis: the axis for which the step amplitude is to be read
-        @return float: the step amplitude of the axis
+        @param str axis: Axis to move
+        @param bool reverse: Move backwards (in negative direction)
         """
         pass
 
-    @abc.abstractmethod
-    def set_step_freq(self, axis, freq):
-        """Sets the step frequency for an axis
+    @abstract_interface_method
+    def set_position(self, axis, position, relative=False):
+        """ 
+        Move to specified position.
+        Generally, this will be for closed-loop movements.
+        
+        @param str axis: Axis to move
+        @param float position: Position in meters
+        @param bool relative: If true, move relative to current position.
 
-        @param str axis: the axis to be changed
-        @param int freq: the stepping frequency the axis should be set to
-        @return int: error code (0:OK, -1:error)
+        Raise AxisConfigError if the axis does not support position
+        feedback.
         """
         pass
 
-    @abc.abstractmethod
-    def get_step_freq(self, axis):
-        """ Reads the step frequency for a specific axis from the device
+    @abstract_interface_method
+    def get_position(self, axis):
+        """
+        Get current position.
 
-        @param str axis: the axis for which the frequency is to be read
-        @return float: the step amplitude of the axis
+        @param str axis: Get position from this axis
+
+        Raise AxisConfigError if the axis does not support position
+        feedback.
         """
         pass
 
-    @abc.abstractmethod
-    def set_axis_mode(self, axis, mode):
-        """Change axis mode
+    @abstract_interface_method
+    def get_axis_config(self, axis, config_option=None):
+        """
+        Retrieve configuration of specified axis
+        @param str axis: Axis to retrieve
+        @param str config_option: Configuration option to retrieve (optional)
+        @return: Specified config_option value
+        @return dict: All config_options available (if no config_option specified)
 
-        @param str axis: axis to be changed, can only be part of dictionary axes
-        @param str mode: mode to be set (hardware-dependent)
-        @return int: error code (0: OK, -1:error)
+        See docstring of set_axis_config for standard config names.
+
+        Raise AxisConfigError if a config_option is not implemented.
         """
         pass
 
-    @abc.abstractmethod
-    def get_axis_mode(self, axis):
-        """ Checks the mode for a specific axis
+    @abstract_interface_method
+    def set_axis_config(self, axis, config):
+        """
+        Set configuration of specified axis
+        @param str axis: Axis to set
+        @param dict config: Configuration to set
 
-        @param str axis: the axis for which the frequency is to be checked
-        @return float: the mode of the axis, -1 for error
+        The config dict can contain an arbitrary number of hardware-specific
+        configuration settings. For example, to set a particular frequency 
+        and step voltage on an axis, this might accept 
+        
+        {'frequency':100, 'step-voltage':20}.
+
+        Standardise on the following names for common config options:
+        'frequency': Step frequency (float)
+        'step-voltage': Step voltage (float)
+        'offset-voltage': Offset voltage (float)
+        'mode': Axis mode (string, e.g. 'stp', 'gnd', 'cap' for attocube)
+
+        Raise AxisConfigError if the configuration option is not implemented.
         """
         pass
 
-    @abc.abstractmethod
-    def get_stepper_axes(self):
-        """ Find out how many axes the scanning device is using for confocal and their names.
+    @abstract_interface_method
+    def get_axis_status(self, axis, status=None):
+        """
+        Get status of specified axis.
+        @param str axis: Get status from this axis
+        @param str status: Get this status flag or variable (optional)
+        @return status: Hardware-dependent status variable.
+        @return dict status: Dict of all status variables (if no status specified)
 
-        @return list(str): list of axis names
+        Standardise on the following names for common status variables:
+        'moving' (bool)
+        'end-of-travel' (bool)
 
-        Example:
-          For 3D confocal microscopy in cartesian coordinates, ['x', 'y', 'z'] is a sensible value.
-          For 2D, ['x', 'y'] would be typical.
-          You could build a turntable microscope with ['r', 'phi', 'z'].
-          Most callers of this function will only care about the number of axes, though.
+        The returned dict should contain keys for each available status variable,
+        with a boolean value for the state of status flags.
 
-          On error, return an empty list.
+        Raise AxisConfigError if status is not implemented.
         """
         pass
 
-    @abc.abstractmethod
-    def move_stepper(self, axis, mode='step', reverse=False, steps=1):
-        """Moves stepper either continuously or by a number of steps in a particular axis
+    @abstract_interface_method
+    def get_axis_limits(self, axis):
+        """
+        Get limits for specified axis.
+        @param str axis: Get limits from this axis
+        @return dict: Dict of all configured limits. Values are (min, max) tuples.
 
-        @param str axis: axis to be moved, can only be part of dictionary axes
-        @param str mode: Sets movement mode. 'step': Stepping, 'cont': Continuous
-        @param str direction: 'out': move out, 'in': move in.
-        @param int steps: number of steps to be moved (in stepping mode)
-        @return int:  error code (0: OK, -1:error)
+        Standardise on the following names for limits:
+        'step-voltage'
+        'frequency'
+        'position'
         """
         pass
 
-    @abc.abstractmethod
+    @abstract_interface_method
     def stop_axis(self, axis):
-        """Stops motion on specified axis
-
-        @param str axis: can only be part of dictionary axes
+        """
+        Stop all motion on specified axis.
+        @param str axis: Axis to stop
         """
         pass
 
-    @abc.abstractmethod
+    @abstract_interface_method
     def stop_all(self):
-        """Stops motion on all axes
         """
-        pass
-
-    @abc.abstractmethod
-    def get_amplitude_range(self):
-        """Returns the current possible stepping voltage range of the stepping device for all axes
-        @return dict: step voltage range of each axis, as set in config file
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_freq_range(self):
-        """Returns the current possible frequency range of the stepping device for all axes
-        @return dict: step frequency range of each axis, as set in config file
+        Stop motion on all axes.
         """
         pass

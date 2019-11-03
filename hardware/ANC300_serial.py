@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ANC-300 or ANC-350 hardware interface using serial interface provided
+ANC-300 hardware interface using serial interface provided
 by Attocube USB drivers.
 
 Uses interface defined in stepper_interface.py
@@ -35,7 +35,7 @@ import functools
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.stepper_interface import StepperInterface
-from interface.stepper_interface import StepperError
+from interface.stepper_interface import StepperError, StepperOutOfRange, AxisError, AxisConfigError
 import numpy as np
 
 # Decorator to check if axis is correct
@@ -45,9 +45,7 @@ def check_axis(func):
         if axis in self.axes:
             return func(self,axis,*args,**kwargs)
         else:
-            msg = 'Axis {} is not defined in config file dictionary.'.format(axis)
-            self.log.error(msg)
-            raise KeyError(msg)
+            raise AxisError('Axis {} is not defined in config file dictionary.'.format(axis))
     return check
 
 # Decorator to check serial connection & do serial exception handling
@@ -61,17 +59,15 @@ def check_connected(func):
             return func(self,*args,**kwargs)
         except serial.SerialTimeoutException:
             msg = "SerialTimeoutException while communicating on {}".format(self.port)
-            self.log.error(msg)
             raise StepperError(msg)
         except serial.SerialException:
             msg = "SerialException while communicating on {}".format(self.port)
-            self.log.error(msg)
             raise StepperError(msg)
     return check
 
 class AttoCubeStepper(Base,StepperInterface):
     """
-    Attocube stepper class
+    Attocube ANC-300 stepper class
     Config parameters:
     - port: string, COM port provided by attocube
     - voltage_range: dict, Voltage range [min,max] for each axis
@@ -98,6 +94,7 @@ class AttoCubeStepper(Base,StepperInterface):
         """Module start-up"""
         # Currently supported modes of Attocube: gnd, stp
         self.mode_list = ['gnd','stp']
+        self._config_option_list = ['frequency', 'step-voltage', 'mode']
 
         # Read config
         config = self.getConfiguration()
@@ -132,148 +129,191 @@ class AttoCubeStepper(Base,StepperInterface):
         self.reset_hardware()
 
     def reset_hardware(self):
+        """
+        Close hardware connection.
+        """
         if self.connection.is_open:
             self.connection.reset_input_buffer()
             self.connection.reset_output_buffer()
             self.connection.close()
 
+    def set_position(self, axis, position, relative=False):
+        """
+        No position feedback on ANC-300. Raise AxisConfigError.
+        """
+        raise AxisConfigError('No position feedback on ANC-300')
+
+    def get_position(self, axis):
+        """
+        No position feedback on ANC-300. Raise AxisConfigError.
+        """
+        raise AxisConfigError('No position feedback on ANC-300')
+
+    @check_axis
+    def get_axis_status(self, axis, status=None):
+        """
+        No axis status information available on ANC-300.
+        """
+        raise AxisConfigError('No axis status info available on ANC-300.')
+
     @check_axis
     @check_connected
-    def set_step_amplitude(self,axis,voltage):
-        """Set step amplitude for a particular axis
-        @param str axis: axis identifier as defined in config file
-        @param float voltage: step voltage
+    def get_axis_config(self, axis, config_option=None):
         """
-        # Check voltage in range
-        if float(voltage) < min(self.vrange[axis]) or float(voltage) > max(self.vrange[axis]):
-            self.log.warn("Could not set voltage for axis {}. Voltage {} outside configured range {}".format(axis,voltage,self.vrange[axis]))
-            return
+        Get configuration of specified axis.
+        @param str axis: Axis to retrieve.
+        @param str config_option: Config option to return (optional)
+        @return: Specified config_option value.
+        @return dict: All config_option values (if no config_option specified)
+
+        config_option is one of:
+        'frequency'
+        'step-voltage'
+        'mode'.
+        """
+        # This relies on a particular form of return value, so is fragile 
+        # to Attocube controller changes. There is also a bug in the ANC-300
+        # return value for frequencies specifically, which may be fixed
+        # in newer firmware.
+
+        if config_option == None:
+            return self._get_all_config(axis)
+
+        elif config_option == 'step-voltage':
+            cmd = "getv {}".format(self.axes[axis])
+            return_str = self.connection.send_cmd(cmd)
+            return return_str[-3].split(' ')[-2]
         
-        # Construct command
-        cmd = "setv {} {}".format(self.axes[axis], voltage)
-        self.connection.send_cmd(cmd)
+        elif config_option == 'frequency':
+            cmd = "getf {}".format(self.axes[axis])
+            return_str = self.connection.send_cmd(cmd)
+            return return_str[-2].split(' ')[-2]
 
-    @check_axis
-    @check_connected
-    def get_step_amplitude(self,axis):
-        """Get step amplitude set for a particular axis
-        @param str axis: axis identifier as defined in config file
-        @param float voltage: step voltage
-        """
-        cmd = "getv {}".format(self.axes[axis])
-        return_str = self.connection.send_cmd(cmd)
-        # This relies on a particular form of return value, so is fragile to Attocube
-        # controller changes.
-        return return_str[-3].split(' ')[-2]
+        elif config_option == 'mode':
+            cmd = "getm {}".format(self.axes[axis])
+            return_str = self.connection.send_cmd(cmd)
+            return return_str[-3].split(' ')[-1]
 
-    @check_axis
-    @check_connected
-    def set_step_freq(self,axis,frequency):
-        """Get step amplitude set for a particular axis
-        @param str axis: axis identifier as defined in config file
-        @return float frequency: step frequency
-        """
-        # Check frequency in range
-        if float(frequency) < min(self.frange[axis]) or float(frequency) > max(self.frange[axis]):
-            self.log.warn("Could not set frequency for axis {}. Frequency {} outside configured range {}".format(axis,frequency,self.vrange[axis]))
-            return
-        
-        # Construct command
-        cmd = "setf {} {}" .format(self.axes[axis],frequency)
-        self.connection.send_cmd(cmd)
-
-    @check_axis
-    @check_connected
-    def get_step_freq(self,axis):
-        """Get step amplitude set for a particular axis
-        @param str axis: axis identifier as defined in config file
-        @return float frequency: step frequency
-        """
-        cmd = "getf {}".format(self.axes[axis])
-        return_str = self.connection.send_cmd(cmd)
-
-        # This relies on a particular form of return value, so is fragile to Attocube
-        # controller changes. There is also currently a bug in the ANC-300 return
-        # value for frequencies specifically, which may be fixed in future firmware.
-        return return_str[-2].split(' ')[-2]
-
-    @check_axis
-    @check_connected
-    def set_axis_mode(self,axis,mode):
-        """Set axis mode
-
-        @param str axis: axis identifier as defined in config file
-        @param str mode: mode to be set (currently one of 'gnd' or 'stp')
-        """
-        # Check mode is one of the supported ones
-        if mode in self.mode_list:
-            cmd = "setm {} {}".format(self.axes[axis],mode)
-            self.connection.send_cmd(cmd)
         else:
-            self.log.warn("Could not set mode {} on axis {}. mode should be one of {}.".format(mode,axis,self.mode_list))
-    
-    @check_axis
-    @check_connected
-    def get_axis_mode(self,axis):
-        """Get axis mode
+            raise AxisConfigError('Config option {} unsupported'.format(config_option))
 
-        @param str axis: axis identifier as defined in config file
-        @return str mode: mode to be set
+    def _get_all_config(self, axis):
         """
-        cmd = "getm {}".format(self.axes[axis])
-        return_str = self.connection.send_cmd(cmd)
+        Get all config options and return dict.
 
-        # This relies on a particular form of return value, so is fragile to Attocube
-        # controller changes.
-        return return_str[-3].split(' ')[-1]
-
-    def get_stepper_axes(self):
-        """ Get list of axis names.
-
-        @return list(str): list of axis names
-
-        Example:
-          For 3D confocal microscopy in cartesian coordinates, ['x', 'y', 'z'] is a sensible value.
-          For 2D, ['x', 'y'] would be typical.
-          You could build a turntable microscope with ['r', 'phi', 'z'].
-          Most callers of this function will only care about the number of axes, though.
-
-          On error, return an empty list.
+        @param axis: Axis to get config options from.
         """
-        return self.axes.keys()
+        options_dict = {}
+
+        for option in self._config_option_list:
+            options_dict[option] = self.get_axis_config(axis, option)
+        
+        return options_dict
+
 
     @check_axis
     @check_connected
-    def move_stepper(self,axis,mode,direction='out',steps=1):
-        """Moves stepper either continuously or by a number of steps in a particular axis
+    def set_axis_config(self, axis, config):
+        """
+        Get configuration of specified axis.
+        @param str axis: Axis to set
+        @param dict config: Configuration to set
+
+        Config dict keys can be:
+        'step-voltage'
+        'frequency'
+        'mode'
+        """
+        for config_option, value in config.items():
+            if config_option == 'step-voltage':
+                # Check voltage in range
+                if (float(value) < min(self.vrange[axis])
+                   or float(value) > max(self.vrange[axis])):
+                    raise StepperOutOfRange('Voltage out of range')
+
+                # Construct command
+                cmd = "setv {} {}".format(self.axes[axis], value)
+                self.connection.send_cmd(cmd)
+            
+            elif config_option == 'frequency':
+                # Check frequency in range
+                if (float(value) < min(self.frange[axis])
+                   or float(value) > max(self.frange[axis])):
+                    err_msg = ("Could not set frequency for axis {}."
+                               "Frequency {} outside configured range {}")
+                    raise StepperOutOfRange(err_msg.format(axis,value,self.vrange[axis]))
+                
+                # Construct command
+                cmd = "setf {} {}" .format(self.axes[axis],value)
+                self.connection.send_cmd(cmd)
+
+            elif config_option == 'mode':
+                # Check mode is one of the supported ones
+                if value in self.mode_list:
+                    cmd = "setm {} {}".format(self.axes[axis],value)
+                    self.connection.send_cmd(cmd)
+                else:
+                    err_msg = "Could not set mode {} on axis {}. Mode should be one of {}."
+                    raise StepperOutOfRange(err_msg.format(value,axis,self.mode_list))
+
+    @check_axis
+    def get_axis_limits(self, axis):
+        """
+        Get limits for specified axis
+        @param str axis: Query limits on this axis
+        @return dict: Dict of limits
+        """
+        limits_dict = {
+            'step-voltage':self.vrange[axis],
+            'frequency':self.frange[axis]
+            }
+
+        return limits_dict
+
+    def get_axes(self):
+        """
+        Return list of axes.
+        @return list: Axes strings that can be passed to other methods.
+        """
+        return self.axes
+
+    @check_axis
+    @check_connected
+    def move_steps(self, axis, steps=1):
+        """Moves stepper by a number of steps in a particular axis
 
         @param str axis: axis identifier as defined in config file
-        @param str mode: Sets movement mode. 'step': Stepping, 'cont': Continuous
-        @param str direction: 'out': move out, 'in': move in.
-        @param int steps: number of steps to be moved (in stepping mode)
+        @param int steps: number of steps to be moved. Sign indicates direction.
         """
-        if direction == 'in':
+        if steps > 0:
             cmd = "stepu "
-        elif direction == 'out':
+        elif steps < 0:
             cmd = "stepd "
-        else:
-            self.log.error("Direction should be one of 'in' or 'out' when calling move_stepper")
-            return
-
-        if steps < 1:
-            self.log.error("Cannot move less than 1 step")
-            return
 
         cmd += "{} ".format(self.axes[axis])
 
-        if mode == 'step':
-            cmd += str(int(steps))
-        elif mode == 'cont':
-            cmd += "c"
-        else:
-            self.log.error("Mode should be one of 'step' or 'cont' when calling move_stepper")
-            return
+        if steps != 0:
+            cmd += str(abs(int(steps)))
         
+        self.connection.send_cmd(cmd)
+
+    @check_axis
+    @check_connected
+    def start_continuous_motion(self, axis, reverse=False):
+        """ 
+        Start continuous motion on the specified axis and direction.
+        Continues until stopped by calling stop_axis or stop_all.
+
+        @param str axis: Axis to move
+        @param bool reverse: Move backwards (in negative direction)
+        """
+        if reverse:
+            cmd = "stepd "
+        else:
+            cmd = "stepu "
+        
+        cmd += "{} c".format(self.axes[axis])
+
         self.connection.send_cmd(cmd)
 
     @check_axis
@@ -293,20 +333,6 @@ class AttoCubeStepper(Base,StepperInterface):
         for axis in self.axes.items():
             cmd = "stop {}".format(axis[1])
             self.connection.send_cmd(cmd)
-
-    @check_connected
-    def get_amplitude_range(self):
-        """Returns the current possible stepping voltage range of the stepping device for all axes
-        @return dict: step voltage range of each axis, as set in config file
-        """
-        return self.vrange
-
-    @check_connected
-    def get_freq_range(self):
-        """Returns the current possible frequency range of the stepping device for all axes
-        @return dict: step frequency range of each axis, as set in config file
-        """
-        return self.frange
 
 class AttocubeComm(serial.Serial):
     """

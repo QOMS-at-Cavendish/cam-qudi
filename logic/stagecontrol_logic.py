@@ -26,7 +26,7 @@ from qtpy import QtCore
 
 from core.util.mutex import Mutex
 
-from interface.stepper_interface import StepperError
+from interface.stepper_interface import StepperError, StepperOutOfRange, AxisError, AxisConfigError
 
 import numpy as np
 import functools
@@ -45,8 +45,8 @@ def hwerror_handler(func):
     def check(self,*args,**kwargs):
         try:
             return func(self,*args,**kwargs)
-        except StepperError:
-            pass
+        except StepperError as err:
+            self.log.error(err)
     return check
 
 class StagecontrolLogic(GenericLogic):
@@ -87,12 +87,12 @@ class StagecontrolLogic(GenericLogic):
         pass
 
     @hwerror_handler
-    def start_jog(self,axis,direction):
-        self.stage_hw.move_stepper(axis,'cont',direction)
+    def start_jog(self, axis, direction):
+        self.stage_hw.start_continuous_motion(axis, direction)
     
     @hwerror_handler
-    def step(self,axis,direction,steps):
-        self.stage_hw.move_stepper(axis,'step',direction,steps=steps)
+    def step(self, axis, steps):
+        self.stage_hw.move_steps(axis, steps)
 
     @hwerror_handler
     def stop(self):
@@ -100,13 +100,16 @@ class StagecontrolLogic(GenericLogic):
 
     @hwerror_handler
     def set_axis_params(self,axis,volt,freq):
-        self.stage_hw.set_step_amplitude(axis,volt)
-        self.stage_hw.set_step_freq(axis,freq)
+        self.stage_hw.set_axis_config(axis, 
+            {
+            'step-voltage':volt,
+            'frequency':freq
+            })
 
     @hwerror_handler
     def get_axis_params(self,axis):
-        volt = self.stage_hw.get_step_amplitude(axis)
-        freq = self.stage_hw.get_step_freq(axis)
+        volt = self.stage_hw.get_axis_config(axis, 'step-voltage')
+        freq = self.stage_hw.get_axis_config(axis, 'frequency')
         return volt, freq
 
     def optimise_z(self,steps):
@@ -120,7 +123,7 @@ class StagecontrolLogic(GenericLogic):
 
         # Move to end of search range
         try:
-            self.stage_hw.move_stepper('z','step','out',steps=steps)
+            self.stage_hw.move_steps('z', steps=-steps)
         except StepperError as err:
             self.log.error('Aborting sweep due to hardware error: {}'.format(err))
             return
@@ -150,7 +153,7 @@ class StagecontrolLogic(GenericLogic):
             if self.current_step < self.sweep_length:
                 # If not already at end of sweep move stage 1 step
                 try:
-                    self.stage_hw.move_stepper('z','step','in',steps=1)
+                    self.stage_hw.move_steps('z', 1)
                 except StepperError as err:
                     self.log.error("Aborting sweep due to hardware error: {}".format(err))
                     self.counter_logic.stopCount()
@@ -167,13 +170,13 @@ class StagecontrolLogic(GenericLogic):
                 # Find index of maximum point, and calculate how far back to move
                 max_index = np.argmax(self.sweep_counts)
                 steps = 2*self.sweep_length - max_index
-                print('Optimum at {} steps from current position'.format(steps))
+                self.log.debug('Optimum at {} steps from current position'.format(steps))
 
                 # Do the movement
                 try:
                     if steps > 0:
                         # Move stage if needed (note steps=0 seems to give continuous motion)
-                        self.stage_hw.move_stepper('z','step','out',steps=steps)
+                        self.stage_hw.move_steps('z', -steps)
                 except StepperError as err:
                     self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
                 self.sigOptimisationDone.emit()
