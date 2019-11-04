@@ -148,7 +148,7 @@ class StagecontrolLogic(GenericLogic):
         # Check if counter logic module is locked (i.e. if counter is running)
         if self.counter_logic.module_state() == 'locked':
             # Get last count value and store
-            counts = self.counter_logic.countdata_smoothed[-2, -2]
+            counts = self.counter_logic.countdata_smoothed[-1, -2]
             self.sweep_counts.append(counts)
 
             # Emit event that can be caught by GUI to update
