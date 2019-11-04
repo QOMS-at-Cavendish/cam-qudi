@@ -318,7 +318,7 @@ class AttoCubeStepper(Base,StepperInterface):
 
     @check_axis
     @check_connected
-    def stop_axis(self,axis):
+    def stop_axis(self, axis):
         """Stops motion on specified axis
 
         @param str axis: can only be part of dictionary axes

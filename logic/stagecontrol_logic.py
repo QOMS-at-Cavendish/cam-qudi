@@ -99,6 +99,10 @@ class StagecontrolLogic(GenericLogic):
         self.stage_hw.stop_all()
 
     @hwerror_handler
+    def stop_axis(self, axis):
+        self.stage_hw.stop_axis(axis)
+
+    @hwerror_handler
     def set_axis_params(self,axis,volt,freq):
         self.stage_hw.set_axis_config(axis, 
             {

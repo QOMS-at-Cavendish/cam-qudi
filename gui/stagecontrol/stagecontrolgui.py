@@ -90,6 +90,9 @@ class StagecontrolGui(GUIBase):
         # Flag to keep track of optimisation state
         self.sweep_run = False
 
+        # Flag to keep track of joystick state (avoid excessive number of commands to cube)
+        self.joystick_jog_running = False
+
         # Connect events from z-optimisation routines
         self.stagecontrol_logic.sigCountDataUpdated.connect(self.update_plot)
         self.stagecontrol_logic.sigOptimisationDone.connect(self.optimisation_done)
@@ -162,6 +165,16 @@ class StagecontrolGui(GUIBase):
         if not self._mw.xbox_enable.isChecked():
             # If Xbox control checkbox is unticked, then return
             return
+
+        if joystick_state['y_right'] > 0 and not self.joystick_jog_running:
+            self.stagecontrol_logic.start_jog('z', False)
+            self.joystick_jog_running = True
+        elif joystick_state['y_right'] < 0 and not self.joystick_jog_running:
+            self.stagecontrol_logic.start_jog('z', True)
+            self.joystick_jog_running = True
+        elif joystick_state['y_right'] == 0 and self.joystick_jog_running:
+            self.stagecontrol_logic.stop_axis('z')
+            self.joystick_jog_running = False
         pass
 
     #Button callbacks
