@@ -57,11 +57,11 @@ def check_connected(func):
             if not self.connection.is_open:
                 self.connection.connect(self.port)
             return func(self,*args,**kwargs)
-        except serial.SerialTimeoutException:
-            msg = "SerialTimeoutException while communicating on {}".format(self.port)
+        except serial.SerialTimeoutException as err:
+            msg = "Timeout on {}. {}".format(self.port, err)
             raise StepperError(msg)
-        except serial.SerialException:
-            msg = "SerialException while communicating on {}".format(self.port)
+        except serial.SerialException as err:
+            msg = "Error communicating on {}. {}".format(self.port, err)
             raise StepperError(msg)
     return check
 
