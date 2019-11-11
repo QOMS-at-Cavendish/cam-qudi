@@ -338,8 +338,17 @@ class StagecontrolGui(GUIBase):
     @value_error_handler
     def optimise_btn_clicked(self,msg):
         if self.sweep_run == False:
-            steps = int(self._mw.optimise_steps.text())
-            self.stagecontrol_logic.optimise_z(steps)
+            if self._mw.step_search.isChecked():
+                steps = int(self._mw.optimise_steps.text())
+            else:
+                steps = 0
+
+            if self._mw.volt_search.isChecked():
+                volts = int(self._mw.optimise_volts.text())
+            else:
+                volts = 0
+
+            self.stagecontrol_logic.optimise_z(steps, volts)
             self.sweep_run = True
             self._mw.optimisation_btn.setText("Stop optimisation")
         else:

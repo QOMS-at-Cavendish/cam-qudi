@@ -88,10 +88,14 @@ class StagecontrolLogic(GenericLogic):
 
     @hwerror_handler
     def start_jog(self, axis, direction):
+        # Zero offset voltage before stepping
+        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
         self.stage_hw.start_continuous_motion(axis, direction)
     
     @hwerror_handler
     def step(self, axis, steps):
+        # Zero offset voltage before stepping
+        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
         self.stage_hw.move_steps(axis, steps)
 
     @hwerror_handler
@@ -101,6 +105,7 @@ class StagecontrolLogic(GenericLogic):
     @hwerror_handler
     def stop_axis(self, axis):
         self.stage_hw.stop_axis(axis)
+        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
 
     @hwerror_handler
     def set_axis_params(self,axis,volt,freq):
@@ -116,18 +121,33 @@ class StagecontrolLogic(GenericLogic):
         freq = self.stage_hw.get_axis_config(axis, 'frequency')
         return volt, freq
 
-    def optimise_z(self,steps):
+    def optimise_z(self, steps, volts):
         """Perform z sweep while recording count rate to optimise focus"""
 
         # Initialise variables
         self.sweep_length = steps
-        self.sweep_counts = []
-        self.current_step = -steps
+        self.v_sweep_length = volts
         self.abort = False
+
+        if steps > 0:
+            # Stepping optimisation
+            self._start_step_optimisation()
+
+        elif volts > 0:
+            # Offset V optimisation
+            self._start_volt_optimisation()
+    
+    def _start_step_optimisation(self):
+        # Start stepping optimisation routine
+        self.current_step = -self.sweep_length
+        self.sweep_counts = []
+
+        # Zero offset voltage for stepping operations
+        self.stage_hw.set_axis_config('z', {'offset-voltage':0})
 
         # Move to end of search range
         try:
-            self.stage_hw.move_steps('z', steps=-steps)
+            self.stage_hw.move_steps('z', steps=self.current_step)
         except StepperError as err:
             self.log.error('Aborting sweep due to hardware error: {}'.format(err))
             return
@@ -135,9 +155,70 @@ class StagecontrolLogic(GenericLogic):
         # Start counter running
         self.counter_logic.startCount()
 
-        # Start QTimer (first delay twice as long to allow counter extra time to start)
-        QtCore.QTimer.singleShot(self.optimise_delay*2, self._optimisation_step)
-    
+        # Start QTimer (first delay 4x as long to allow counter extra time to start)
+        QtCore.QTimer.singleShot(self.optimise_delay*4, self._optimisation_step)
+
+    def _start_volt_optimisation(self):
+        # Start offset voltage (fine) optimisation routine
+        self.current_v_step = 0
+        self.sweep_counts = []
+
+        # Move one step back and an additional 1 step per 20 V in volt sweep
+        steps = self.v_sweep_length // 20 + 1
+        self.log.debug('Moving {} steps back'.format(steps))
+        self.stage_hw.move_steps('z', steps=-steps)
+
+        # Start counter running
+        self.counter_logic.startCount()
+
+        # Start QTimer (first delay 4x as long to allow counter extra time to start)
+        QtCore.QTimer.singleShot(self.optimise_delay*4, self._volt_optimisation_step)
+
+    @thread_lock
+    def _volt_optimisation_step(self):
+        """Function called when optimise_timer expires."""
+        if self.abort:
+            self.counter_logic.stopCount()
+            return
+
+        # Check if counter logic module is locked (i.e. if counter is running)
+        if self.counter_logic.module_state() == 'locked':
+            # Get last count value and store
+            counts = self.counter_logic.countdata_smoothed[-1, -2]
+            self.sweep_counts.append(counts)
+
+            # Emit event that can be caught by GUI to update
+            self.sigCountDataUpdated.emit()
+        
+            if (self.current_v_step < self.v_sweep_length):
+                try:
+                    self.stage_hw.set_axis_config('z', {'offset-voltage':self.current_v_step})
+                except StepperError as err:
+                    self.log.error("Aborting sweep due to hardware error: {}".format(err))
+                    self.counter_logic.stopCount()
+                    return
+
+                self.current_v_step += 1
+
+                # Start timer for next iteration
+                QtCore.QTimer.singleShot(self.optimise_delay, self._volt_optimisation_step)
+
+            else:
+                # Sweep done - stop counter
+                self.counter_logic.stopCount()
+
+                # Find index of maximum point, which will equal required offset voltage
+                max_index = np.argmax(self.sweep_counts)
+                self.log.debug('Optimum at {} volts'.format(max_index))
+
+                # Set offset voltage to this maximum.
+                try:
+                    self.stage_hw.set_axis_config('z', {'offset-voltage':max_index})
+                except StepperError as err:
+                    self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
+
+                self.sigOptimisationDone.emit()
+
     @thread_lock
     def _optimisation_step(self):
         """Function called when optimise_timer expires."""
@@ -183,7 +264,13 @@ class StagecontrolLogic(GenericLogic):
                         self.stage_hw.move_steps('z', -steps)
                 except StepperError as err:
                     self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
-                self.sigOptimisationDone.emit()
+
+                if self.v_sweep_length > 0:
+                    # If fine voltage sweep requested, start it after small delay
+                    QtCore.QTimer.singleShot(self.optimise_delay*4, self._start_volt_optimisation)
+                else:
+                    # Otherwise emit Optimisation Done signal and return
+                    self.sigOptimisationDone.emit()                   
 
         else:
             self.log.error("Sweep aborted: counter unexpectedly stopped.")

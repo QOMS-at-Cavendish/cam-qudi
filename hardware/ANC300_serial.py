@@ -93,7 +93,7 @@ class AttoCubeStepper(Base,StepperInterface):
     def on_activate(self):
         """Module start-up"""
         # Currently supported modes of Attocube: gnd, stp
-        self.mode_list = ['gnd','stp']
+        self.mode_list = ['gnd','stp','off','stp+']
         self._config_option_list = ['frequency', 'step-voltage', 'mode']
 
         # Read config
@@ -184,6 +184,11 @@ class AttoCubeStepper(Base,StepperInterface):
             return_str = self.connection.send_cmd(cmd)
             return return_str[-3].split(' ')[-2]
         
+        elif config_option == 'offset-voltage':
+            cmd = "geta {}".format(self.axes[axis])
+            return_str = self.connection.send_cmd(cmd)
+            return return_str[-3].split(' ')[-2]
+        
         elif config_option == 'frequency':
             cmd = "getf {}".format(self.axes[axis])
             return_str = self.connection.send_cmd(cmd)
@@ -223,6 +228,7 @@ class AttoCubeStepper(Base,StepperInterface):
         'step-voltage'
         'frequency'
         'mode'
+        'offset-voltage'
         """
         for config_option, value in config.items():
             if config_option == 'step-voltage':
@@ -241,7 +247,7 @@ class AttoCubeStepper(Base,StepperInterface):
                    or float(value) > max(self.frange[axis])):
                     err_msg = ("Could not set frequency for axis {}."
                                "Frequency {} outside configured range {}")
-                    raise StepperOutOfRange(err_msg.format(axis,value,self.vrange[axis]))
+                    raise StepperOutOfRange(err_msg.format(axis,value,self.frange[axis]))
                 
                 # Construct command
                 cmd = "setf {} {}" .format(self.axes[axis],value)
@@ -255,6 +261,19 @@ class AttoCubeStepper(Base,StepperInterface):
                 else:
                     err_msg = "Could not set mode {} on axis {}. Mode should be one of {}."
                     raise StepperOutOfRange(err_msg.format(value,axis,self.mode_list))
+
+            elif config_option == 'offset-voltage':
+                # Check voltage in range
+                if (float(value) < min(self.vrange[axis])
+                    or float(value) > max(self.vrange[axis])):
+                    err_msg = ("Could not set offset voltage for axis {}."
+                               "Voltage {} outside configured range {}")
+                    raise StepperOutOfRange(err_msg.format(axis,value,self.vrange[axis]))
+
+                # Construct command
+                cmd = "seta {} {}".format(self.axes[axis], value)
+                self.connection.send_cmd(cmd)
+
 
     @check_axis
     def get_axis_limits(self, axis):
