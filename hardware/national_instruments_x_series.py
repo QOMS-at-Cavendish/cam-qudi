@@ -2219,3 +2219,31 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
             return 0
 
 
+    # ======================== Analog channel control =========================
+
+    def analog_channel_read(self, chan, range_min=-10.0, range_max=10.0, samples=10, sample_freq=10000.0):
+        """
+        Read voltage from analog input, using Referenced Single-Ended mode. Timeout of 5.0 seconds.
+
+        @param string chan: Input channel (e.g. /Dev1/ai0)
+        @param float range_min: Min voltage (default -10.0)
+        @param float range_max: Max voltage (default 10.0)
+        @param int samples: Number of samples to get (default 10). Must be at least 2 for now.
+        @param float sample_freq: Sample clock (Hz) (default 1E4).
+        @return list data: List of sampled data.
+        """
+        analog_input = daq.Task()
+        read = daq.int32()
+        data = np.zeros((samples,), dtype=np.float64)
+
+        # DAQmx Configure Code
+        analog_input.CreateAIVoltageChan(chan,b"",daq.DAQmx_Val_RSE,range_min,range_max,daq.DAQmx_Val_Volts,None)
+        analog_input.CfgSampClkTiming(b"",sample_freq,daq.DAQmx_Val_Rising,daq.DAQmx_Val_FiniteSamps,samples)
+
+        # DAQmx Start Code
+        analog_input.StartTask()
+
+        # DAQmx Read Code
+        analog_input.ReadAnalogF64(samples,5.0,daq.DAQmx_Val_GroupByChannel,data,samples,daq.byref(read),None)
+
+        return data
