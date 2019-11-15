@@ -236,7 +236,7 @@
       <x>20</x>
       <y>10</y>
       <width>351</width>
-      <height>201</height>
+      <height>181</height>
      </rect>
     </property>
     <property name="title">
@@ -369,28 +369,12 @@
       <string notr="true">buttonGroup</string>
      </attribute>
     </widget>
-    <widget class="QCheckBox" name="xbox_enable">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>176</y>
-       <width>141</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Enable Xbox controller</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_7">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>220</y>
+      <y>200</y>
       <width>351</width>
       <height>171</height>
      </rect>
@@ -549,6 +533,9 @@
        <height>21</height>
       </rect>
      </property>
+     <property name="text">
+      <string>10</string>
+     </property>
     </widget>
     <widget class="QLabel" name="label_16">
      <property name="geometry">
@@ -571,6 +558,9 @@
        <width>51</width>
        <height>21</height>
       </rect>
+     </property>
+     <property name="text">
+      <string>19</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_17">

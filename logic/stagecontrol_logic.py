@@ -55,6 +55,7 @@ class StagecontrolLogic(GenericLogic):
 
     stagehardware = Connector(interface='StepperInterface')
     counterlogic = Connector(interface='CounterLogic')
+    xboxlogic = Connector(interface='XboxLogic')
 
     # Signals to trigger GUI updates
     sigOptimisationDone = QtCore.Signal()
@@ -75,6 +76,17 @@ class StagecontrolLogic(GenericLogic):
         """
         self.stage_hw = self.stagehardware()
         self.counter_logic = self.counterlogic()
+        self.xbox_logic = self.xboxlogic()
+
+        self.xbox_logic.sigButtonPress.connect(self.xbox_button_press)
+        self.xbox_logic.sigJoystickMoved.connect(self.xbox_joystick_move)
+
+        # Variable to keep track of joystick state (avoid excessive number of 
+        # commands to cube) - this is 0 for no motion, or +1 or -1 depending on 
+        # direction.
+        self.x_joystick_jog_running = 0
+        self.y_joystick_jog_running = 0
+        self.z_joystick_jog_running = 0
 
         # Delay used between requesting stepper motion and requesting count-rate while optimising z-axis.
         # TODO: Make this a configuration option.
@@ -278,3 +290,116 @@ class StagecontrolLogic(GenericLogic):
     @thread_lock
     def abort_optimisation(self):
         self.abort = True
+
+    # Xbox control commands
+    def xbox_button_press(self,button):
+        # D-pad: click x and y
+        if button == 'left_down':
+            # D-pad down
+            self.step('y', -1)
+
+        elif button == 'left_up':
+            # D-pad up
+            self.step('y', 1)
+
+        if button == 'left_left':
+            # D-pad left
+            self.step('x', -1)
+
+        elif button == 'left_right':
+            # D-pad right
+            self.step('x', 1)
+
+        elif button == 'right_right':
+            # B button
+            self.stop()
+
+        # Shoulder buttons: left - z down, right - z up
+        if button == 'left_shoulder':
+            # Left shoulder
+            self.step('z', -1)
+
+        elif button == 'right_shoulder':
+            # Right shoulder
+            self.step('z', 1)
+    
+    def xbox_joystick_move(self,joystick_state):
+        # Z-control on y-axis of right-hand joystick
+        z = joystick_state['y_right']
+
+        if z == 0 and self.z_joystick_jog_running != 0:
+            # If joystick zeroed and cube is currently moving, stop.
+            self.stop_axis('z')
+            self.z_joystick_jog_running = 0
+
+        elif np.sign(z) != np.sign(self.z_joystick_jog_running):
+            # Otherwise, move in appropriate direction if needed.
+            if z > 0:
+                self.start_jog('z', False)
+                self.z_joystick_jog_running = 1
+            elif z < 0:
+                self.start_jog('z', True)
+                self.z_joystick_jog_running = -1
+
+        # x,y control on left-hand joystick
+        # Use sectors defined by lines with y = 2x and x = 2y for pure y or x
+        # motion, otherwise do diagonal movement.
+        x = joystick_state['x_left']
+        y = joystick_state['y_left']
+
+        required_x = 0
+        required_y = 0
+
+        if np.sqrt(x**2 + y**2) < 0.1:
+            # Circular dead-zone
+            pass
+
+        elif abs(y) > abs(2*x):
+            # If in the exclusive y motion sector, just move in y
+            required_y = np.sign(y)
+
+        elif abs(x) > abs(2*y):
+            # If in the exclusive x motion sector, just move in x
+            required_x = np.sign(x)
+
+        else:
+            # If somewhere else, move if the axis is non-zero.
+            if x != 0:
+                required_x = np.sign(x)
+            if y != 0:
+                required_y = np.sign(y)
+
+        # Do required movements, checking flags to minimise commands sent to
+        # Attocube controller.
+
+        if required_x == 0 and self.x_joystick_jog_running != 0:
+            # Stop x
+            self.stop_axis('x')
+            self.x_joystick_jog_running = 0
+            
+        if required_y == 0 and self.y_joystick_jog_running != 0:
+            # Stop y
+            self.stop_axis('y')
+            self.y_joystick_jog_running = 0
+
+        if (required_y != 0 and
+            (np.sign(self.y_joystick_jog_running) != np.sign(required_y) 
+            or self.y_joystick_jog_running == 0)):
+            # Move y
+            if y > 0:
+                self.start_jog('y', True)
+                self.y_joystick_jog_running = 1
+            elif y < 0:
+                self.start_jog('y', False)
+                self.y_joystick_jog_running = -1
+        
+        if (required_x != 0 and
+            (np.sign(self.x_joystick_jog_running) != np.sign(required_x) 
+            or self.x_joystick_jog_running == 0)):
+            # Move x
+            if x > 0:
+                self.start_jog('x', True)
+                self.x_joystick_jog_running = 1
+            elif x < 0:
+                self.start_jog('x', False)
+                self.x_joystick_jog_running = -1
