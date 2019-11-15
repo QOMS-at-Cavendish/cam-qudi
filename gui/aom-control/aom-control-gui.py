@@ -84,7 +84,9 @@ class AomControlGui(GUIBase):
 
         self.aom_logic = self.aomlogic()
 
-        self.aom_logic.sigPowerUpdated.connect(self.update_power)
+        self.aom_logic.sigAomUpdated.connect(self.update)
+
+        self.aom_logic.start_poll()
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -96,17 +98,29 @@ class AomControlGui(GUIBase):
     def on_deactivate(self):
         """ Deactivate module
         """
-        pass
+        self.aom_logic.stop_poll()
 
-    def update_power(self, power_dict):
-        voltage = float(power_dict['pd-voltage'])
-        power = float(power_dict['pd-power'])
+    def update(self, param_dict):
+        """
+        Callback to update interface when the AOM logic produces a sigAomUpdated.
+        @param dict param_dict: Dict of parameters to use for updating GUI.
+        """
+        try:
+            # Get photodiode voltage and power
+            voltage = float(param_dict['pd-voltage'])
+            power = float(param_dict['pd-power'])
 
-        self._mw.voltage_readout.setText("{:.3f}".format(voltage))
-        self._mw.power_readout.setText("{:.3f}".format(power))
+            # Update readout widgets
+            self._mw.voltage_readout.setText("{:.3f}".format(voltage))
+            self._mw.power_readout.setText("{:.3f}".format(power))
 
-        self.power_buffer = np.roll(self.power_buffer, -1)
-        self.power_buffer[-1] = power
+            # Add power to rolling buffer and update plot data
+            self.power_buffer = np.roll(self.power_buffer, -1)
+            self.power_buffer[-1] = power
 
-        self.plotdata.setData(self.time, self.power_buffer)
+            self.plotdata.setData(self.time, self.power_buffer)
+        except:
+            # Stop polling if any exception is raised
+            self.aom_logic.stop_poll()
+            raise
 

@@ -30,13 +30,15 @@ from core.util.mutex import Mutex
 from logic.generic_logic import GenericLogic
 from qtpy import QtCore
 
+from PyDAQmx import DAQError
+
 
 class AomControlLogic(GenericLogic):
     """
     Control laser power with AOM
     """
 
-    sigPowerUpdated = QtCore.Signal(dict)
+    sigAomUpdated = QtCore.Signal(dict)
     nicard = Connector(interface='NationalInstrumentsXSeries')
 
     def __init__(self, config, **kwargs):
@@ -48,23 +50,28 @@ class AomControlLogic(GenericLogic):
         # Hardware
         self.daqcard = self.nicard()
 
-        self.queryInterval = 100
+        self.query_interval = 100
 
-        self._stop_poll = False
-
-        # Timer
-        self.queryTimer = QtCore.QTimer()
-        self.queryTimer.setInterval(self.queryInterval)
-        self.queryTimer.setSingleShot(True)
-        self.queryTimer.timeout.connect(self.update_power_reading, QtCore.Qt.QueuedConnection)
-
-        self.queryTimer.start(self.queryInterval)
+        self.start_poll()
+        
 
     def on_deactivate(self):
         """Module deactivation
         """
-        # Stop timer
-        self.queryTimer.stop()
+        self.stop_poll()
+        
+
+    def start_poll(self):
+        """
+        Start polling DAQ
+        """
+        self._stop_poll = False
+        QtCore.QTimer.singleShot(self.query_interval, self.update_power_reading)
+
+    def stop_poll(self):
+        """
+        Stop polling DAQ
+        """
         self._stop_poll = True
 
 
@@ -75,19 +82,23 @@ class AomControlLogic(GenericLogic):
         if self._stop_poll == True:
             return
 
-        #TODO: make channel a config option
-        voltage_reading = np.mean(self.daqcard.analog_channel_read('/Dev1/ai0'))
+        try:
+            #TODO: make channel a config option
+            voltage_reading = np.mean(self.daqcard.analog_channel_read('/Dev1/ai0'))
+        
+            # Calibration gives near perfectly linear relationship
+            # *81.571 to get uW before scanning mirror
+            # *0.3525 to get uW after objective
+            power = voltage_reading * 81.571 * 0.3525
 
-        # Calibration gives near perfectly linear relationship
-        # *81.571 to get uW before scanning mirror
-        # *0.3525 to get uW after objective
-        power = voltage_reading * 81.571 * 0.3525
+            output_dict = {
+                'pd-voltage':voltage_reading,
+                'pd-power':power
+            }
 
-        output_dict = {
-            'pd-voltage':voltage_reading,
-            'pd-power':power
-        }
+            self.sigAomUpdated.emit(output_dict)
+            QtCore.QTimer.singleShot(self.query_interval, self.update_power_reading)
 
-        self.sigPowerUpdated.emit(output_dict)
-
-        self.queryTimer.start(self.queryInterval)
+        except DAQError as err:
+            # Log any DAQ errors
+            self.log.error('DAQ error {}'.format(err))
