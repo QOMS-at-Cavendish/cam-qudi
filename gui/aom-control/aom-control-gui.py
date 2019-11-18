@@ -31,6 +31,8 @@ import pyqtgraph as pg
 import functools
 import datetime
 
+from gui.colordefs import QudiPalettePale as palette
+
 from core.connector import Connector
 from gui.guibase import GUIBase
 
@@ -79,9 +81,13 @@ class AomControlGui(GUIBase):
         # Set up graph
         self._mw.plot.setLabel('left', 'Power', units='µW')
         self._mw.plot.setLabel('bottom', 'Time')
-        self.plotdata = pg.PlotDataItem(pen=pg.mkPen('0BF', width=2))
+        self.plotdata = pg.PlotDataItem(pen=pg.mkPen(palette.c1, width=2))
         self._mw.plot.addItem(self.plotdata)
 
+        # Connect GUI events
+        self._mw.output_adj.valueChanged.connect(self.output_slider_moved)
+
+        # Connect logic events
         self.aom_logic = self.aomlogic()
 
         self.aom_logic.sigAomUpdated.connect(self.update)
@@ -124,3 +130,10 @@ class AomControlGui(GUIBase):
             self.aom_logic.stop_poll()
             raise
 
+    def output_slider_moved(self, val):
+        volts = val / 10
+        ret = self.aom_logic.set_aom_volts(volts)
+        if ret == 0:
+            self._mw.aom_out.setText("{:.2f}".format(volts))
+        else:
+            self._mw.aom_out.setText("NC")

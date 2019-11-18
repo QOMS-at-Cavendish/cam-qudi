@@ -216,8 +216,8 @@ class StagecontrolLogic(GenericLogic):
                 QtCore.QTimer.singleShot(self.optimise_delay, self._volt_optimisation_step)
 
             else:
-                # Sweep done - stop counter
-                self.counter_logic.stopCount()
+                # Sweep done - stop counter (not necessary)
+                #self.counter_logic.stopCount()
 
                 # Find index of maximum point, which will equal required offset voltage
                 max_index = np.argmax(self.sweep_counts)
@@ -261,8 +261,8 @@ class StagecontrolLogic(GenericLogic):
                 # Start timer for next iteration
                 QtCore.QTimer.singleShot(self.optimise_delay, self._optimisation_step)
             else:
-                # Sweep done - stop counter
-                self.counter_logic.stopCount()
+                # Sweep done - stop counter (not actually necessary, left for reference)
+                # self.counter_logic.stopCount()
 
                 # Find index of maximum point, and calculate how far back to move
                 max_index = np.argmax(self.sweep_counts)

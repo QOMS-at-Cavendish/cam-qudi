@@ -30,6 +30,8 @@ from core.util.mutex import Mutex
 from logic.generic_logic import GenericLogic
 from qtpy import QtCore
 
+from core.configoption import ConfigOption
+
 from PyDAQmx import DAQError
 
 
@@ -41,6 +43,13 @@ class AomControlLogic(GenericLogic):
     sigAomUpdated = QtCore.Signal(dict)
     nicard = Connector(interface='NationalInstrumentsXSeries')
 
+    # Config options
+    photodiode_channel = ConfigOption('photodiode_channel', missing='error')
+    aom_channel = ConfigOption('aom_channel', '')
+    photodiode_factor = ConfigOption('photodiode_factor', 1.0)
+    query_interval = ConfigOption('query_interval', 100)
+    volt_range = ConfigOption('aom_volt_range', [0,5])
+
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 
@@ -49,8 +58,6 @@ class AomControlLogic(GenericLogic):
         """
         # Hardware
         self.daqcard = self.nicard()
-
-        self.query_interval = 100
 
         self.start_poll()
         
@@ -83,13 +90,11 @@ class AomControlLogic(GenericLogic):
             return
 
         try:
-            #TODO: make channel a config option
-            voltage_reading = np.mean(self.daqcard.analog_channel_read('/Dev1/ai0'))
+            # Read voltage from photodiode
+            voltage_reading = np.mean(self.daqcard.analog_channel_read(self.photodiode_channel))
         
-            # Calibration gives near perfectly linear relationship
-            # *81.571 to get uW before scanning mirror
-            # *0.3525 to get uW after objective
-            power = voltage_reading * 81.571 * 0.3525
+            # Convert power to volts using factor
+            power = voltage_reading * self.photodiode_factor
 
             output_dict = {
                 'pd-voltage':voltage_reading,
@@ -102,3 +107,18 @@ class AomControlLogic(GenericLogic):
         except DAQError as err:
             # Log any DAQ errors
             self.log.error('DAQ error {}'.format(err))
+
+    def set_aom_volts(self, volts):
+        """
+        Manually set AOM output to specified volts.
+        """
+        volts = float(volts)
+        if volts >= min(self.volt_range) and volts <= max(self.volt_range):
+            # Check inside acceptable voltage range
+            # Write to analogue output
+            if self.aom_channel != '':
+                self.daqcard.analog_channel_write(self.aom_channel, volts)
+                return 0
+            else:
+                self.log.warn('No AOM channel specified - no output')
+                return -1

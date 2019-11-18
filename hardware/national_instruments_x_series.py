@@ -2247,3 +2247,18 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         analog_input.ReadAnalogF64(samples,5.0,daq.DAQmx_Val_GroupByChannel,data,samples,daq.byref(read),None)
 
         return data
+
+    def analog_channel_write(self, chan, voltage):
+        """
+        Write voltage to analog output.
+        @param string chan: Output channel
+        @param float voltage: Voltage
+        """
+        analog_output = daq.Task()
+
+        # DAQmx Configure
+        analog_output.CreateAOVoltageChan(chan, b'', -10.0, 10.0, daq.DAQmx_Val_Volts, None)
+        analog_output.StartTask()
+
+        # DAQmx write
+        analog_output.WriteAnalogScalarF64(1, 5.0, voltage, None)

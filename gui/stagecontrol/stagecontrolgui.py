@@ -29,6 +29,8 @@ from qtpy import uic
 import pyqtgraph as pg
 import functools
 
+from gui.colordefs import QudiPalettePale as palette
+
 from core.connector import Connector
 from gui.guibase import GUIBase
 
@@ -79,7 +81,7 @@ class StagecontrolGui(GUIBase):
         # Set up counts vs z plot
         self._mw.plot.setLabel('left', 'Counts', units='cps')
         self._mw.plot.setLabel('bottom', 'Z position', units='steps')
-        self.plotdata = pg.PlotDataItem(pen=pg.mkPen('0BF', width=4))
+        self.plotdata = pg.PlotDataItem(pen=pg.mkPen(palette.c1, width=4))
         self._mw.plot.addItem(self.plotdata)
 
         # Flag to keep track of optimisation state
