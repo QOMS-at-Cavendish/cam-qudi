@@ -29,6 +29,8 @@ from qtpy import uic
 import pyqtgraph as pg
 import functools
 
+from qtwidgets.joystick import Joystick
+
 from gui.colordefs import QudiPalettePale as palette
 
 from core.connector import Connector
@@ -98,17 +100,12 @@ class StagecontrolGui(GUIBase):
         # Direction jog buttons
         self._mw.stop_btn.clicked.connect(self.stop_movement)
 
-        self._mw.x_left_btn.pressed.connect(self.x_left)
-        self._mw.x_right_btn.pressed.connect(self.x_right)
-        self._mw.y_up_btn.pressed.connect(self.y_up)
-        self._mw.y_down_btn.pressed.connect(self.y_down)
+        self._mw.xy_move_widget.moved.connect(self.xy_moved)
+        self.direction = (0, 0)
+
         self._mw.z_up_btn.pressed.connect(self.z_up)
         self._mw.z_down_btn.pressed.connect(self.z_down)
 
-        self._mw.x_left_btn.released.connect(self.direction_btn_released)
-        self._mw.x_right_btn.released.connect(self.direction_btn_released)
-        self._mw.y_up_btn.released.connect(self.direction_btn_released)
-        self._mw.y_down_btn.released.connect(self.direction_btn_released)
         self._mw.z_up_btn.released.connect(self.direction_btn_released)
         self._mw.z_down_btn.released.connect(self.direction_btn_released)
 
@@ -141,6 +138,64 @@ class StagecontrolGui(GUIBase):
     def stop_movement(self):
         """Stop button callback"""
         self.stagecontrol_logic.stop()
+
+    def xy_moved(self, direction):
+        angle, magnitude = direction
+        
+        new_direction = (0, 0)
+
+        if magnitude > 0.3:
+            # Have a small dead-zone
+            # Then quantise angles into 8 segments
+            if angle > 337.5 or angle <= 22.5:
+                # Right
+                new_direction = (1, 0)
+            elif angle <= 67.5:
+                # Right, Up
+                new_direction = (1, 1)
+            elif angle <= 112.5:
+                # Up
+                new_direction = (0, 1)
+            elif angle <= 157.5:
+                # Left, Up
+                new_direction = (-1, 1)
+            elif angle <= 202.5:
+                # Left
+                new_direction = (-1, 0)
+            elif angle <= 247.5:
+                # Left, Down
+                new_direction = (-1, -1)
+            elif angle <= 292.5:
+                # Down
+                new_direction = (0, -1)
+            elif angle <= 337.5:
+                # Right, Down
+                new_direction = (1, -1)
+
+        # Check if the new direction is the same as the old one, and command
+        # stage logic to move the stage appropriately if not.
+
+        # X-axis
+        if new_direction[0] == 0 and self.direction[0] != 0:
+            self.stagecontrol_logic.stop_axis('x')
+
+        elif new_direction[0] == -1 and self.direction[0] != -1:
+            self.x_left()
+        
+        elif new_direction[0] == 1 and self.direction[0] != 1:
+            self.x_right()
+        
+        # Y-axis
+        if new_direction[1] == 0 and self.direction[1] != 0:
+            self.stagecontrol_logic.stop_axis('y')
+            
+        elif new_direction[1] == -1 and self.direction[1] != -1:
+            self.y_down()
+        
+        elif new_direction[1] == 1 and self.direction[1] != 1:
+            self.y_up()
+            
+        self.direction = new_direction
 
     def x_left(self):
         if self._mw.continuous.isChecked():
