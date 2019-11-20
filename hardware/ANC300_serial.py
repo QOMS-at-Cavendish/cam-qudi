@@ -4,7 +4,7 @@
 ANC-300 hardware interface using serial interface provided
 by Attocube USB drivers.
 
-Uses interface defined in stepper_interface.py
+Uses interface defined in positioner_interface.py
 
 Uses pyserial for communication.
 
@@ -34,8 +34,8 @@ import functools
 
 from core.module import Base
 from core.configoption import ConfigOption
-from interface.stepper_interface import StepperInterface
-from interface.stepper_interface import StepperError, StepperOutOfRange, AxisError, AxisConfigError
+from interface.positioner_interface import PositionerInterface
+from interface.positioner_interface import PositionerError, PositionerOutOfRange, AxisError, AxisConfigError
 import numpy as np
 
 # Decorator to check if axis is correct
@@ -49,7 +49,7 @@ def check_axis(func):
     return check
 
 # Decorator to check serial connection & do serial exception handling
-# Raises a generic StepperError instead of SerialError for hardware independence
+# Raises a generic PositionerError instead of SerialError for hardware independence
 def check_connected(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
@@ -59,13 +59,13 @@ def check_connected(func):
             return func(self,*args,**kwargs)
         except serial.SerialTimeoutException as err:
             msg = "Timeout on {}. {}".format(self.port, err)
-            raise StepperError(msg)
+            raise PositionerError(msg)
         except serial.SerialException as err:
             msg = "Error communicating on {}. {}".format(self.port, err)
-            raise StepperError(msg)
+            raise PositionerError(msg)
     return check
 
-class AttoCubeStepper(Base,StepperInterface):
+class AttoCubeStepper(Base,PositionerInterface):
     """
     Attocube ANC-300 stepper class
     Config parameters:
@@ -85,23 +85,16 @@ class AttoCubeStepper(Base,StepperInterface):
     _modtype = 'AttoCubeStepper'
     _modclass = 'hardware'
 
-    _port = ConfigOption('port', missing='error')
-    _voltage_range = ConfigOption('step_voltage_range', {})
-    _frequency_range = ConfigOption('frequency_range', {})
-    _axes = ConfigOption('axes', {}, missing='error')
+    port = ConfigOption('port', missing='error')
+    vrange = ConfigOption('step_voltage_range', {})
+    frange = ConfigOption('frequency_range', {})
+    axes = ConfigOption('axes', {}, missing='error')
 
     def on_activate(self):
         """Module start-up"""
         # Currently supported modes of Attocube: gnd, stp
         self.mode_list = ['gnd','stp','off','stp+']
-        self._config_option_list = ['frequency', 'step-voltage', 'mode']
-
-        # Read config
-        config = self.getConfiguration()
-        self.port = config['port']
-        self.vrange = config['step_voltage_range']
-        self.frange = config['frequency_range']
-        self.axes = config['axes']
+        self._config_option_list = ['frequency', 'step_voltage', 'offset_voltage', 'mode']
 
         # Set conservative default step voltage and frequency for missing axes config
         default_vrange = [0,40]
@@ -149,6 +142,12 @@ class AttoCubeStepper(Base,StepperInterface):
         """
         raise AxisConfigError('No position feedback on ANC-300')
 
+    def reference_axis(self, axis):
+        """
+        No home positions on ANC-300. Raise AxisConfigError.
+        """
+        raise AxisConfigError("No reference positions on ANC-300")
+
     @check_axis
     def get_axis_status(self, axis, status=None):
         """
@@ -168,7 +167,8 @@ class AttoCubeStepper(Base,StepperInterface):
 
         config_option is one of:
         'frequency'
-        'step-voltage'
+        'step_voltage'
+        'offset_voltage'
         'mode'.
         """
         # This relies on a particular form of return value, so is fragile 
@@ -179,12 +179,12 @@ class AttoCubeStepper(Base,StepperInterface):
         if config_option == None:
             return self._get_all_config(axis)
 
-        elif config_option == 'step-voltage':
+        elif config_option == 'step_voltage':
             cmd = "getv {}".format(self.axes[axis])
             return_str = self.connection.send_cmd(cmd)
             return return_str[-3].split(' ')[-2]
         
-        elif config_option == 'offset-voltage':
+        elif config_option == 'offset_voltage':
             cmd = "geta {}".format(self.axes[axis])
             return_str = self.connection.send_cmd(cmd)
             return return_str[-3].split(' ')[-2]
@@ -218,24 +218,24 @@ class AttoCubeStepper(Base,StepperInterface):
 
     @check_axis
     @check_connected
-    def set_axis_config(self, axis, config):
+    def set_axis_config(self, axis, **config):
         """
         Get configuration of specified axis.
         @param str axis: Axis to set
-        @param dict config: Configuration to set
+        @kwargs: Name-value pairs for configuration to set
 
-        Config dict keys can be:
-        'step-voltage'
+        Config keys can be:
+        'step_voltage'
         'frequency'
         'mode'
-        'offset-voltage'
+        'offset_voltage'
         """
         for config_option, value in config.items():
-            if config_option == 'step-voltage':
+            if config_option == 'step_voltage':
                 # Check voltage in range
                 if (float(value) < min(self.vrange[axis])
                    or float(value) > max(self.vrange[axis])):
-                    raise StepperOutOfRange('Voltage out of range')
+                    raise PositionerOutOfRange('Voltage out of range')
 
                 # Construct command
                 cmd = "setv {} {}".format(self.axes[axis], value)
@@ -247,7 +247,7 @@ class AttoCubeStepper(Base,StepperInterface):
                    or float(value) > max(self.frange[axis])):
                     err_msg = ("Could not set frequency for axis {}."
                                "Frequency {} outside configured range {}")
-                    raise StepperOutOfRange(err_msg.format(axis,value,self.frange[axis]))
+                    raise PositionerOutOfRange(err_msg.format(axis,value,self.frange[axis]))
                 
                 # Construct command
                 cmd = "setf {} {}" .format(self.axes[axis],value)
@@ -260,15 +260,15 @@ class AttoCubeStepper(Base,StepperInterface):
                     self.connection.send_cmd(cmd)
                 else:
                     err_msg = "Could not set mode {} on axis {}. Mode should be one of {}."
-                    raise StepperOutOfRange(err_msg.format(value,axis,self.mode_list))
+                    raise PositionerOutOfRange(err_msg.format(value,axis,self.mode_list))
 
-            elif config_option == 'offset-voltage':
+            elif config_option == 'offset_voltage':
                 # Check voltage in range
                 if (float(value) < min(self.vrange[axis])
                     or float(value) > max(self.vrange[axis])):
                     err_msg = ("Could not set offset voltage for axis {}."
                                "Voltage {} outside configured range {}")
-                    raise StepperOutOfRange(err_msg.format(axis,value,self.vrange[axis]))
+                    raise PositionerOutOfRange(err_msg.format(axis,value,self.vrange[axis]))
 
                 # Construct command
                 cmd = "seta {} {}".format(self.axes[axis], value)
@@ -283,7 +283,7 @@ class AttoCubeStepper(Base,StepperInterface):
         @return dict: Dict of limits
         """
         limits_dict = {
-            'step-voltage':self.vrange[axis],
+            'step_voltage':self.vrange[axis],
             'frequency':self.frange[axis]
             }
 

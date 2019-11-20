@@ -23,20 +23,20 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from core.interface import abstract_interface_method
 from core.meta import InterfaceMetaclass
 
-class StepperError(Exception):
+class PositionerError(Exception):
     """ 
-    StepperError exception for hardware errors.
+    PositionerError exception for hardware errors.
     """
     pass
 
-class StepperOutOfRange(StepperError):
+class PositionerOutOfRange(PositionerError):
     """ 
-    StepperOutOfRange exception if requested value is out of range.
+    PositionerOutOfRange exception if requested value is out of range.
     Raise when e.g. setting out-of-range config option or position.
     """
     pass
 
-class AxisError(StepperError):
+class AxisError(PositionerError):
     """ 
     AxisError exception if axis is not configured (e.g. if axis str is not
     found in the config file)
@@ -50,11 +50,11 @@ class AxisConfigError(AxisError):
     """
     pass
 
-class StepperInterface(metaclass=InterfaceMetaclass):
-    """ Interface to stepper hardware (e.g. Attocube)
+class PositionerInterface(metaclass=InterfaceMetaclass):
+    """ Interface to positioner hardware.
     """
 
-    _modtype = 'StepperInterface'
+    _modtype = 'PositionerInterface'
     _modclass = 'interface'
 
     @abstract_interface_method
@@ -116,6 +116,15 @@ class StepperInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def reference_axis(self, axis):
+        """
+        Move axis to reference position/home position (if available)
+        Raise AxisConfigError if this axis does not have a reference/home position.
+        @param str axis: Move this axis
+        """
+        pass
+
+    @abstract_interface_method
     def get_axis_config(self, axis, config_option=None):
         """
         Retrieve configuration of specified axis
@@ -131,22 +140,22 @@ class StepperInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
-    def set_axis_config(self, axis, config):
+    def set_axis_config(self, axis, **config):
         """
         Set configuration of specified axis
         @param str axis: Axis to set
-        @param dict config: Configuration to set
+        @kwargs config: Configuration to set
 
-        The config dict can contain an arbitrary number of hardware-specific
+        The config kwargs can be an arbitrary number of hardware-specific
         configuration settings. For example, to set a particular frequency 
         and step voltage on an axis, this might accept 
         
-        {'frequency':100, 'step-voltage':20}.
+        set_axis_config('x', frequency=100, step-voltage=20)
 
         Standardise on the following names for common config options:
         'frequency': Step frequency (float)
-        'step-voltage': Step voltage (float)
-        'offset-voltage': Offset voltage (float)
+        'step_voltage': Step voltage (float)
+        'offset_voltage': Offset voltage (float)
         'mode': Axis mode (string, e.g. 'stp', 'gnd', 'cap' for attocube)
 
         Raise AxisConfigError if the configuration option is not implemented.
@@ -181,7 +190,7 @@ class StepperInterface(metaclass=InterfaceMetaclass):
         @return dict: Dict of all configured limits. Values are (min, max) tuples.
 
         Standardise on the following names for limits:
-        'step-voltage'
+        'step_voltage'
         'frequency'
         'position'
         """

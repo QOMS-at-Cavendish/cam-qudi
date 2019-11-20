@@ -26,7 +26,7 @@ from qtpy import QtCore
 
 from core.util.mutex import Mutex
 
-from interface.stepper_interface import StepperError, StepperOutOfRange, AxisError, AxisConfigError
+from interface.positioner_interface import PositionerError, PositionerOutOfRange, AxisError, AxisConfigError
 
 import numpy as np
 import functools
@@ -45,7 +45,7 @@ def hwerror_handler(func):
     def check(self,*args,**kwargs):
         try:
             return func(self,*args,**kwargs)
-        except StepperError as err:
+        except PositionerError as err:
             self.log.error(err)
     return check
 
@@ -53,7 +53,7 @@ class StagecontrolLogic(GenericLogic):
     """ Logic module for moving Attocube.
     """
 
-    stagehardware = Connector(interface='StepperInterface')
+    stagehardware = Connector(interface='PositionerInterface')
     counterlogic = Connector(interface='CounterLogic')
     xboxlogic = Connector(interface='XboxLogic')
 
@@ -101,13 +101,13 @@ class StagecontrolLogic(GenericLogic):
     @hwerror_handler
     def start_jog(self, axis, direction):
         # Zero offset voltage before stepping
-        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
+        self.stage_hw.set_axis_config(axis, offset_voltage=0)
         self.stage_hw.start_continuous_motion(axis, direction)
     
     @hwerror_handler
     def step(self, axis, steps):
         # Zero offset voltage before stepping
-        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
+        self.stage_hw.set_axis_config(axis, offset_voltage=0)
         self.stage_hw.move_steps(axis, steps)
 
     @hwerror_handler
@@ -117,19 +117,15 @@ class StagecontrolLogic(GenericLogic):
     @hwerror_handler
     def stop_axis(self, axis):
         self.stage_hw.stop_axis(axis)
-        self.stage_hw.set_axis_config(axis, {'offset-voltage':0})
+        self.stage_hw.set_axis_config(axis, offset_voltage=0)
 
     @hwerror_handler
     def set_axis_params(self,axis,volt,freq):
-        self.stage_hw.set_axis_config(axis, 
-            {
-            'step-voltage':volt,
-            'frequency':freq
-            })
+        self.stage_hw.set_axis_config(axis, step_voltage=volt, frequency=freq)
 
     @hwerror_handler
     def get_axis_params(self,axis):
-        volt = self.stage_hw.get_axis_config(axis, 'step-voltage')
+        volt = self.stage_hw.get_axis_config(axis, 'step_voltage')
         freq = self.stage_hw.get_axis_config(axis, 'frequency')
         return volt, freq
 
@@ -155,12 +151,12 @@ class StagecontrolLogic(GenericLogic):
         self.sweep_counts = []
 
         # Zero offset voltage for stepping operations
-        self.stage_hw.set_axis_config('z', {'offset-voltage':0})
+        self.stage_hw.set_axis_config('z', offset_voltage=0)
 
         # Move to end of search range
         try:
             self.stage_hw.move_steps('z', steps=self.current_step)
-        except StepperError as err:
+        except PositionerError as err:
             self.log.error('Aborting sweep due to hardware error: {}'.format(err))
             return
 
@@ -204,8 +200,8 @@ class StagecontrolLogic(GenericLogic):
         
             if (self.current_v_step < self.v_sweep_length):
                 try:
-                    self.stage_hw.set_axis_config('z', {'offset-voltage':self.current_v_step})
-                except StepperError as err:
+                    self.stage_hw.set_axis_config('z', offset_voltage=self.current_v_step)
+                except PositionerError as err:
                     self.log.error("Aborting sweep due to hardware error: {}".format(err))
                     self.counter_logic.stopCount()
                     return
@@ -225,8 +221,8 @@ class StagecontrolLogic(GenericLogic):
 
                 # Set offset voltage to this maximum.
                 try:
-                    self.stage_hw.set_axis_config('z', {'offset-voltage':max_index})
-                except StepperError as err:
+                    self.stage_hw.set_axis_config('z', offset_voltage=max_index)
+                except PositionerError as err:
                     self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
 
                 self.sigOptimisationDone.emit()
@@ -251,7 +247,7 @@ class StagecontrolLogic(GenericLogic):
                 # If not already at end of sweep move stage 1 step
                 try:
                     self.stage_hw.move_steps('z', 1)
-                except StepperError as err:
+                except PositionerError as err:
                     self.log.error("Aborting sweep due to hardware error: {}".format(err))
                     self.counter_logic.stopCount()
                     return
@@ -274,7 +270,7 @@ class StagecontrolLogic(GenericLogic):
                     if steps > 0:
                         # Move stage if needed (note steps=0 seems to give continuous motion)
                         self.stage_hw.move_steps('z', -steps)
-                except StepperError as err:
+                except PositionerError as err:
                     self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
 
                 if self.v_sweep_length > 0:
