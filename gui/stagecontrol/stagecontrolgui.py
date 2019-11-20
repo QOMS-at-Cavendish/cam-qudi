@@ -92,6 +92,8 @@ class StagecontrolGui(GUIBase):
         # Connect events from z-optimisation routines
         self.stagecontrol_logic.sigCountDataUpdated.connect(self.update_plot)
         self.stagecontrol_logic.sigOptimisationDone.connect(self.optimisation_done)
+        self.stagecontrol_logic.sigPositionUpdated.connect(self.update_position)
+        self.stagecontrol_logic.sigHitTarget.connect(self.hit_target)
 
         ###################
         # Connect UI events
@@ -115,11 +117,22 @@ class StagecontrolGui(GUIBase):
         self._mw.set_z_btn.clicked.connect(self.set_z_params)
         self._mw.get_param_btn.clicked.connect(self.update_params)
 
+        self._mw.get_vel_btn.clicked.connect(self.get_velocities)
+        self._mw.set_vel_btn.clicked.connect(self.set_velocities)
+
         # Optimisation start/stop button
         self._mw.optimisation_btn.clicked.connect(self.optimise_btn_clicked)
 
-        # Get params on load
-        self.update_params(None)
+        # Home buttons
+        self._mw.home_x.clicked.connect(self.home_x)
+        self._mw.home_y.clicked.connect(self.home_y)
+        self._mw.home_z.clicked.connect(self.home_z)
+        self._mw.home_all.clicked.connect(self.home_all)
+
+        # Move buttons
+        self._mw.goto_btn.clicked.connect(self.goto_position)
+        self._mw.rel_move_btn.clicked.connect(self.goto_position_rel)
+
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -262,13 +275,16 @@ class StagecontrolGui(GUIBase):
     @value_error_handler
     def optimise_btn_clicked(self,msg):
         if self.sweep_run == False:
+            if self._mw.search_closedloop.isChecked():
+                microns = abs(float(self._mw.optimise_microns.text()))
+                self.stagecontrol_logic.optimise_microns(microns)
             if self._mw.step_search.isChecked():
-                steps = int(self._mw.optimise_steps.text())
+                steps = abs(int(self._mw.optimise_steps.text()))
             else:
                 steps = 0
 
             if self._mw.volt_search.isChecked():
-                volts = int(self._mw.optimise_volts.text())
+                volts = abs(int(self._mw.optimise_volts.text()))
             else:
                 volts = 0
 
@@ -279,6 +295,119 @@ class StagecontrolGui(GUIBase):
             self.stagecontrol_logic.abort_optimisation()
             self.sweep_run = False
             self._mw.optimisation_btn.setText("Start optimisation")
+
+    def home_x(self):
+        check = QtWidgets.QMessageBox.question(
+            self._mw,
+            'Confirm home', 
+            "This will move the x-axis stage to the home position. Continue?", 
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+            QtWidgets.QMessageBox.No)
+        if check == QtWidgets.QMessageBox.Yes:
+            self.stagecontrol_logic.home_axis('x')
+
+    def home_y(self):
+        check = QtWidgets.QMessageBox.question(
+            self._mw,
+            'Confirm home', 
+            "This will move the y-axis stage to the home position. Continue?", 
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+            QtWidgets.QMessageBox.No)
+        if check == QtWidgets.QMessageBox.Yes:
+            self.stagecontrol_logic.home_axis('y')
+
+    def home_z(self):
+        check = QtWidgets.QMessageBox.question(
+            self._mw,
+            'Confirm home', 
+            "This will move the z-axis stage to the home position. Continue?", 
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+            QtWidgets.QMessageBox.No)
+        if check == QtWidgets.QMessageBox.Yes:
+            self.stagecontrol_logic.home_axis('z')
+
+    def home_all(self):
+        check = QtWidgets.QMessageBox.question(
+            self._mw,
+            'Confirm home', 
+            "This will move all axes to the home position. Continue?", 
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+            QtWidgets.QMessageBox.No)
+        if check == QtWidgets.QMessageBox.Yes:
+            self.stagecontrol_logic.home_axis()
+
+    def update_position(self, pos_dict):
+        try:
+            if pos_dict['x'] == 'Err':
+                self._mw.x_pos.setText("Homing")
+            else:
+                self._mw.x_pos.setText("{:2.5f}".format(pos_dict['x']))
+            if pos_dict['y'] == 'Err':
+                self._mw.y_pos.setText("Homing")
+            else:
+                self._mw.y_pos.setText("{:2.5f}".format(pos_dict['y']))
+            if pos_dict['z'] == 'Err':
+                self._mw.z_pos.setText("Homing")
+            else:
+                self._mw.z_pos.setText("{:2.5f}".format(pos_dict['z']))
+
+        except KeyError as err:
+            self.log.warn('Could not update all positions. {}'.format(err))
+        except ValueError:
+            self._mw.x_pos.setText('')
+            self._mw.y_pos.setText('')
+            self._mw.z_pos.setText('')
+
+    def hit_target(self):
+        self._mw.x_pos_entry.setText('')
+        self._mw.y_pos_entry.setText('')
+        self._mw.z_pos_entry.setText('')
+
+    @value_error_handler
+    def goto_position(self, msg):
+        """
+        Goto absolute position
+        """
+        # Get position from UI
+        x_pos = self._mw.x_pos_entry.text()
+        y_pos = self._mw.y_pos_entry.text()
+        z_pos = self._mw.z_pos_entry.text()
+
+        # Construct move_dict
+        move_dict = {}
+        if x_pos != '':
+            move_dict['x'] = float(x_pos)
+
+        if y_pos != '':
+            move_dict['y'] = float(y_pos)
+
+        if z_pos != '':
+            move_dict['z'] = float(z_pos)
+
+        self.stagecontrol_logic.move_abs(move_dict)
+
+    @value_error_handler
+    def goto_position_rel(self, msg):
+        """
+        Goto relative position
+        """
+        # Get position from UI
+        x_pos = self._mw.x_pos_entry_2.text()
+        y_pos = self._mw.y_pos_entry_2.text()
+        z_pos = self._mw.z_pos_entry_2.text()
+
+        # Construct move_dict
+        move_dict = {}
+        if x_pos != '':
+            move_dict['x'] = float(x_pos)
+
+        if y_pos != '':
+            move_dict['y'] = float(y_pos)
+
+        if z_pos != '':
+            move_dict['z'] = float(z_pos)
+
+        self.stagecontrol_logic.move_rel(move_dict)
 
     def update_params(self,msg):
         """Get parameters from stepper & update GUI"""
@@ -308,3 +437,29 @@ class StagecontrolGui(GUIBase):
     def optimisation_done(self):
         self._mw.optimisation_btn.setText("Start optimisation")
         self.sweep_run = False
+
+    def get_velocities(self):
+        velocity_dict = self.stagecontrol_logic.get_velocities()
+        self._mw.x_vel.setText(str(velocity_dict['x']))
+        self._mw.y_vel.setText(str(velocity_dict['y']))
+        self._mw.z_vel.setText(str(velocity_dict['z']))
+
+    @value_error_handler
+    def set_velocities(self, msg):
+        # Get velocities from UI
+        x_vel = self._mw.x_vel.text()
+        y_vel = self._mw.y_vel.text()
+        z_vel = self._mw.z_vel.text()
+
+        # Construct velocity_dict
+        velocity_dict = {}
+        if x_vel != '':
+            velocity_dict['x'] = float(x_vel)
+
+        if y_vel != '':
+            velocity_dict['y'] = float(y_vel)
+
+        if z_vel != '':
+            velocity_dict['z'] = float(z_vel)
+
+        self.stagecontrol_logic.set_velocities(velocity_dict)

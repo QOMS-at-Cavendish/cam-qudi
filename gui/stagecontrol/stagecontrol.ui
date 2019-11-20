@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>718</width>
-    <height>587</height>
+    <width>778</width>
+    <height>682</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
      <rect>
       <x>310</x>
       <y>30</y>
-      <width>391</width>
+      <width>451</width>
       <height>211</height>
      </rect>
     </property>
@@ -126,7 +126,7 @@
       <rect>
        <x>30</x>
        <y>50</y>
-       <width>47</width>
+       <width>71</width>
        <height>16</height>
       </rect>
      </property>
@@ -139,7 +139,7 @@
       <rect>
        <x>30</x>
        <y>90</y>
-       <width>47</width>
+       <width>71</width>
        <height>16</height>
       </rect>
      </property>
@@ -152,7 +152,7 @@
       <rect>
        <x>30</x>
        <y>130</y>
-       <width>47</width>
+       <width>71</width>
        <height>16</height>
       </rect>
      </property>
@@ -268,6 +268,58 @@
       <string>Relative move</string>
      </property>
     </widget>
+    <widget class="QPushButton" name="home_x">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>50</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Home</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="home_y">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>90</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Home</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="home_z">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>130</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Home</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="home_all">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>170</y>
+       <width>81</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Home all</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
@@ -373,7 +425,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>250</y>
+      <y>350</y>
       <width>351</width>
       <height>191</height>
      </rect>
@@ -481,7 +533,7 @@
       <x>370</x>
       <y>250</y>
       <width>331</width>
-      <height>291</height>
+      <height>321</height>
      </rect>
     </property>
     <property name="title">
@@ -491,7 +543,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>110</y>
+       <y>140</y>
        <width>291</width>
        <height>161</height>
       </rect>
@@ -601,6 +653,58 @@
       <string>Offset V</string>
      </property>
     </widget>
+    <widget class="QLabel" name="label_21">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>110</y>
+       <width>60</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Search ±</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="optimise_microns">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>110</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.01</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_22">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>110</y>
+       <width>21</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>µm</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="search_closedloop">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>110</y>
+       <width>111</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Closed Loop</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QPushButton" name="stop_btn">
     <property name="geometry">
@@ -615,18 +719,138 @@
      <string>Stop all movement</string>
     </property>
    </widget>
+   <widget class="QGroupBox" name="groupBox_5">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>250</y>
+      <width>351</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Velocity</string>
+    </property>
+    <widget class="QLineEdit" name="x_vel">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>56</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="y_vel">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>56</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="z_vel">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>56</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_4">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>36</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>x</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>36</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>y</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>36</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>z</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="set_vel_btn">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>70</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Set</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="get_vel_btn">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>36</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Get</string>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>718</width>
+     <width>778</width>
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuConfigure">
+    <property name="title">
+     <string>Configure</string>
+    </property>
+    <addaction name="actionAttocube"/>
+   </widget>
+   <addaction name="menuConfigure"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionAttocube">
+   <property name="text">
+    <string>Attocube</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -643,22 +867,37 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>continuous</tabstop>
+  <tabstop>singlestep</tabstop>
+  <tabstop>stop_btn</tabstop>
+  <tabstop>z_up_btn</tabstop>
+  <tabstop>z_down_btn</tabstop>
   <tabstop>x_pos_entry</tabstop>
   <tabstop>y_pos_entry</tabstop>
   <tabstop>z_pos_entry</tabstop>
-  <tabstop>rel_move_btn</tabstop>
   <tabstop>goto_btn</tabstop>
+  <tabstop>x_pos_entry_2</tabstop>
+  <tabstop>y_pos_entry_2</tabstop>
+  <tabstop>z_pos_entry_2</tabstop>
+  <tabstop>rel_move_btn</tabstop>
+  <tabstop>home_x</tabstop>
+  <tabstop>home_y</tabstop>
+  <tabstop>home_z</tabstop>
+  <tabstop>optimise_steps</tabstop>
+  <tabstop>optimise_volts</tabstop>
+  <tabstop>step_search</tabstop>
+  <tabstop>volt_search</tabstop>
+  <tabstop>optimisation_btn</tabstop>
   <tabstop>x_freq</tabstop>
-  <tabstop>x_voltage</tabstop>
-  <tabstop>set_x_btn</tabstop>
   <tabstop>y_freq</tabstop>
-  <tabstop>y_voltage</tabstop>
-  <tabstop>set_y_btn</tabstop>
   <tabstop>z_freq</tabstop>
+  <tabstop>x_voltage</tabstop>
+  <tabstop>y_voltage</tabstop>
   <tabstop>z_voltage</tabstop>
+  <tabstop>get_param_btn</tabstop>
+  <tabstop>set_x_btn</tabstop>
+  <tabstop>set_y_btn</tabstop>
   <tabstop>set_z_btn</tabstop>
-  <tabstop>z_up_btn</tabstop>
-  <tabstop>z_down_btn</tabstop>
  </tabstops>
  <resources/>
  <connections/>

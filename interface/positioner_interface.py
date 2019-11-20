@@ -36,6 +36,13 @@ class PositionerOutOfRange(PositionerError):
     """
     pass
 
+class PositionerNotReferenced(PositionerError):
+    """
+    PositionerNotReferenced exception if position is requested or set while
+    stage is not referenced/homed.
+    """
+    pass
+
 class AxisError(PositionerError):
     """ 
     AxisError exception if axis is not configured (e.g. if axis str is not
