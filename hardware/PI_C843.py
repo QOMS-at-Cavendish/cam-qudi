@@ -109,6 +109,9 @@ class PI_C843(Base,PositionerInterface):
         Close hardware connection.
         """
         pass
+
+    def hw_info(self):
+        return {'manufacturer':'PI', 'model':'C843'}
         
     def set_position(self, axis, position, relative=False):
         """

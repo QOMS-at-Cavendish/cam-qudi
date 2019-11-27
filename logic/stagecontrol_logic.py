@@ -64,6 +64,11 @@ class StagecontrolLogic(GenericLogic):
     sigPositionUpdated = QtCore.Signal(dict)
     sigHitTarget = QtCore.Signal()
 
+    # Signals to trigger stage moves
+    sigStartJog = QtCore.Signal(tuple)
+    sigStartStep = QtCore.Signal(tuple)
+    sigStopAxis = QtCore.Signal(str)
+
     # Config option to invert axes for jog operations
     invert_axes = ConfigOption('jog_invert_axes', [])
 
@@ -89,6 +94,11 @@ class StagecontrolLogic(GenericLogic):
 
         self.on_target = False
 
+        # Connect stage move signals
+        self.sigStartJog.connect(self._do_jog)
+        self.sigStartStep.connect(self._do_step)
+        self.sigStopAxis.connect(self._stop_axis)
+
         # Variable to keep track of joystick state (avoid excessive number of 
         # commands to cube) - this is 0 for no motion, or +1 or -1 depending on 
         # direction.
@@ -112,32 +122,62 @@ class StagecontrolLogic(GenericLogic):
         """
         pass
 
-    @hwerror_handler
     def start_jog(self, axis, direction):
-        # Zero offset voltage before stepping
+        """Start stage movement in specified direction.
+        Uses a signal to actually start movement, so this can be 
+        safely called from the GUI thread without blocking the GUI.
+        """
         self.on_target = False
-        self.stage_hw.set_axis_config(axis, offset_voltage=0)
         if axis in self.invert_axes:
             direction = not direction
-        self.stage_hw.start_continuous_motion(axis, direction)
-    
-    @hwerror_handler
+
+        self.sigStartJog.emit((axis, direction))
+        
     def step(self, axis, steps):
-        # Zero offset voltage before stepping
+        """Step stage in specified direction.
+        Uses a signal to actually start movement, so this can be 
+        safely called from the GUI thread without blocking the GUI.
+        """
         self.on_target = False
-        self.stage_hw.set_axis_config(axis, offset_voltage=0)
         if axis in self.invert_axes:
             steps = -steps
-        self.stage_hw.move_steps(axis, steps)
+        self.sigStartStep.emit((axis, steps))
+
+    def stop_axis(self, axis):
+        """Stop specified axis.
+        Uses a signal to actually start movement, so this can be 
+        safely called from the GUI thread without blocking the GUI.
+        """
+        self.sigStopAxis.emit(axis)
+
+    @hwerror_handler
+    def _do_jog(self, param_list):
+        """Internal method to start jog. Connected to sigStartJog"""
+        # Zero offset voltage
+        self.stage_hw.set_axis_config(param_list[0], offset_voltage=0)
+
+        # Do stage move
+        self.stage_hw.start_continuous_motion(*param_list)
+
+    @hwerror_handler
+    def _do_step(self, param_list):
+        """Internal method to start jog. Connected to sigStartStep"""
+        # Zero offset voltage
+        self.stage_hw.set_axis_config(param_list[0], offset_voltage=0)
+
+        # Do stage move
+        self.stage_hw.move_steps(*param_list)
+    
+    @hwerror_handler
+    def _stop_axis(self, axis):
+        """Internal method to stop axis. Connected to sigStopAxis"""
+        self.stage_hw.stop_axis(axis)
+        self.stage_hw.set_axis_config(axis, offset_voltage=0)
+    
 
     @hwerror_handler
     def stop(self):
         self.stage_hw.stop_all()
-
-    @hwerror_handler
-    def stop_axis(self, axis):
-        self.stage_hw.stop_axis(axis)
-        self.stage_hw.set_axis_config(axis, offset_voltage=0)
 
     @hwerror_handler
     def set_axis_params(self,axis,volt,freq):
@@ -466,9 +506,8 @@ class StagecontrolLogic(GenericLogic):
                     self.on_target = False
 
         except PositionerError:
-            pos_dict['x'] = 'Err'
-            pos_dict['y'] = 'Err'
-            pos_dict['z'] = 'Err'
+            # Ignore hardware errors.
+            pass
 
         self.sigPositionUpdated.emit(pos_dict)
         QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
@@ -576,3 +615,6 @@ class StagecontrolLogic(GenericLogic):
 
                 # Emit 'finished' signal to update GUI
                 self.sigOptimisationDone.emit()
+
+    def get_hw_manufacturer(self):
+        return self.stage_hw.hw_info()['manufacturer']

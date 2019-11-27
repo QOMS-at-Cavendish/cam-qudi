@@ -74,6 +74,17 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def hw_info(self):
+        """
+        Get a dict containing hardware info.
+        Keys:
+        'manufacturer'
+        'model'
+        and optionally other (hardware-dependent) keys.
+        """
+        pass
+
+    @abstract_interface_method
     def move_steps(self, axis, steps=1):
         """ 
         Move a specified number of steps

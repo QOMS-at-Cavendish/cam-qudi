@@ -130,6 +130,9 @@ class AttoCubeStepper(Base,PositionerInterface):
             self.connection.reset_output_buffer()
             self.connection.close()
 
+    def hw_info(self):
+        return {'manufacturer':'Attocube', 'model':'ANC300'}
+
     def set_position(self, axis, position, relative=False):
         """
         No position feedback on ANC-300. Raise AxisConfigError.

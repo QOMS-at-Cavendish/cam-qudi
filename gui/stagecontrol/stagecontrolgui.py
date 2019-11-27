@@ -41,7 +41,7 @@ def value_error_handler(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
         try:
-            func(self,*args,**kwargs)
+            return func(self,*args,**kwargs)
         except ValueError:
             self.log.warn("ValueError when converting UI input - check input values")
     return check
@@ -95,6 +95,11 @@ class StagecontrolGui(GUIBase):
         self.stagecontrol_logic.sigPositionUpdated.connect(self.update_position)
         self.stagecontrol_logic.sigHitTarget.connect(self.hit_target)
 
+        # Show or hide attocube tab depending on reported hardware
+        if self.stagecontrol_logic.get_hw_manufacturer() != 'Attocube':
+            # Remove attocube tab
+            self._mw.tabWidget.removeTab(2)
+
         ###################
         # Connect UI events
         ###################
@@ -133,7 +138,11 @@ class StagecontrolGui(GUIBase):
         self._mw.goto_btn.clicked.connect(self.goto_position)
         self._mw.rel_move_btn.clicked.connect(self.goto_position_rel)
 
-
+        # Checkboxes
+        self._mw.x_pos_entry.textChanged.connect(self.x_changed)
+        self._mw.y_pos_entry.textChanged.connect(self.y_changed)
+        self._mw.z_pos_entry.textChanged.connect(self.z_changed)
+        
     def show(self):
         """Make window visible and put it above all other windows.
         """
@@ -338,19 +347,19 @@ class StagecontrolGui(GUIBase):
 
     def update_position(self, pos_dict):
         try:
-            if pos_dict['x'] == 'Err':
-                self._mw.x_pos.setText("Homing")
-            else:
+            if 'x' in pos_dict.keys():
                 self._mw.x_pos.setText("{:2.5f}".format(pos_dict['x']))
-            if pos_dict['y'] == 'Err':
-                self._mw.y_pos.setText("Homing")
             else:
+                self._mw.x_pos.setText("--")
+            if 'y' in pos_dict.keys():
                 self._mw.y_pos.setText("{:2.5f}".format(pos_dict['y']))
-            if pos_dict['z'] == 'Err':
-                self._mw.z_pos.setText("Homing")
             else:
+                self._mw.y_pos.setText("--")
+            if 'z' in pos_dict.keys():
                 self._mw.z_pos.setText("{:2.5f}".format(pos_dict['z']))
-
+            else:
+                self._mw.z_pos.setText("--")
+                
         except KeyError as err:
             self.log.warn('Could not update all positions. {}'.format(err))
         except ValueError:
@@ -359,19 +368,42 @@ class StagecontrolGui(GUIBase):
             self._mw.z_pos.setText('')
 
     def hit_target(self):
-        self._mw.x_pos_entry.setText('')
-        self._mw.y_pos_entry.setText('')
-        self._mw.z_pos_entry.setText('')
+        """ Stage hit target """
+        # Disable all positioning enable checkboxes
+        self._mw.x_enable.setChecked(False)
+        self._mw.y_enable.setChecked(False)
+        self._mw.z_enable.setChecked(False)
+
+    def x_changed(self, text):
+        """ On text changed in x position box """
+        self._mw.x_enable.setChecked(text != '')
+
+    def y_changed(self, text):
+        """ On text changed in y position box """
+        self._mw.y_enable.setChecked(text != '')
+    
+    def z_changed(self, text):
+        """ On text changed in z position box """
+        self._mw.z_enable.setChecked(text != '')
 
     @value_error_handler
     def goto_position(self, msg):
         """
         Goto absolute position
         """
+        x_pos = ''
+        y_pos = ''
+        z_pos = ''
+
         # Get position from UI
-        x_pos = self._mw.x_pos_entry.text()
-        y_pos = self._mw.y_pos_entry.text()
-        z_pos = self._mw.z_pos_entry.text()
+        if self._mw.x_enable.isChecked():
+            x_pos = self._mw.x_pos_entry.text()
+        
+        if self._mw.y_enable.isChecked():
+            y_pos = self._mw.y_pos_entry.text()
+
+        if self._mw.z_enable.isChecked():
+            z_pos = self._mw.z_pos_entry.text()
 
         # Construct move_dict
         move_dict = {}
