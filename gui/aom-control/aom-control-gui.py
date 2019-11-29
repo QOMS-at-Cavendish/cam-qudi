@@ -41,7 +41,7 @@ def value_error_handler(func):
     @functools.wraps(func)
     def check(self,*args,**kwargs):
         try:
-            func(self,*args,**kwargs)
+            return func(self,*args,**kwargs)
         except ValueError:
             self.log.warn("ValueError when converting UI input - check input values")
     return check
@@ -76,21 +76,32 @@ class AomControlGui(GUIBase):
 
         # Create 100 sample rolling buffer for the output graph
         self.power_buffer = np.zeros(100)
+        self.power_filtered = np.zeros(100)
         self.time = np.arange(0,100)
 
         # Set up graph
         self._mw.plot.setLabel('left', 'Power', units='µW')
         self._mw.plot.setLabel('bottom', 'Time')
         self.plotdata = pg.PlotDataItem(pen=pg.mkPen(palette.c1, width=2))
+        self.plotdata_smoothed = pg.PlotDataItem(pen=pg.mkPen(palette.c2, width=2), symbol=None)
         self._mw.plot.addItem(self.plotdata)
+        self._mw.plot.addItem(self.plotdata_smoothed)
 
         # Connect GUI events
         self._mw.output_adj.valueChanged.connect(self.output_slider_moved)
+        self._mw.pid_enable.stateChanged.connect(self.enable_pid)
+        self._mw.setpoint.editingFinished.connect(self.setpoint_changed)
 
         # Connect logic events
         self.aom_logic = self.aomlogic()
 
         self.aom_logic.sigAomUpdated.connect(self.update)
+
+        # Set slider to appropriate range
+        v_range = self.aom_logic.volt_range
+
+        self._mw.output_adj.setMinimum(v_range[0]*10)
+        self._mw.output_adj.setMaximum(v_range[1]*10)
 
         self.aom_logic.start_poll()
 
@@ -115,16 +126,24 @@ class AomControlGui(GUIBase):
             # Get photodiode voltage and power
             voltage = float(param_dict['pd-voltage'])
             power = float(param_dict['pd-power'])
+            power_filtered = float(param_dict['pd-power-filtered'])
+            volts = float(param_dict['aom-output'])
+
 
             # Update readout widgets
             self._mw.voltage_readout.setText("{:.3f}".format(voltage))
             self._mw.power_readout.setText("{:.3f}".format(power))
+            self._mw.aom_out.setText("{:.2f}".format(volts))
 
             # Add power to rolling buffer and update plot data
             self.power_buffer = np.roll(self.power_buffer, -1)
             self.power_buffer[-1] = power
 
+            self.power_filtered = np.roll(self.power_filtered, -1)
+            self.power_filtered[-1] = power_filtered
+
             self.plotdata.setData(self.time, self.power_buffer)
+            self.plotdata_smoothed.setData(self.time, self.power_filtered)
         except:
             # Stop polling if any exception is raised
             self.aom_logic.stop_poll()
@@ -132,8 +151,25 @@ class AomControlGui(GUIBase):
 
     def output_slider_moved(self, val):
         volts = val / 10
-        ret = self.aom_logic.set_aom_volts(volts)
-        if ret == 0:
-            self._mw.aom_out.setText("{:.2f}".format(volts))
-        else:
-            self._mw.aom_out.setText("NC")
+        self.aom_logic.enable_pid(False)
+        self._mw.pid_enable.setChecked(False)
+        self.aom_logic.set_aom_volts(volts)
+
+    def enable_pid(self, val):
+        """
+        Control Loop Enable checkbox ticked
+        """
+        if val == 0:
+            # Unchecked
+            self.aom_logic.enable_pid(False)
+        elif val == 2:
+            # Checked
+            self.aom_logic.enable_pid(True)
+
+    @value_error_handler    
+    def setpoint_changed(self):
+        """
+        Setpoint changed
+        """
+        new_setpoint = float(self._mw.setpoint.text())
+        self.aom_logic.setpoint = new_setpoint
