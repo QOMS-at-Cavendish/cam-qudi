@@ -28,7 +28,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import serial
-import time
 
 import functools
 
@@ -364,7 +363,7 @@ class AttocubeComm(serial.Serial):
     def __init__(self,port=None,timeout=0.5,*args,**kwargs):
         """Create serial interface object. Can be called with a port, in 
         which case it opens immediately."""
-        serial.Serial.__init__(self,port,timeout=timeout, write_timeout=timeout,*args,**kwargs)
+        super().__init__(self,port,timeout=timeout, write_timeout=timeout,*args,**kwargs)
 
     def connect(self,port='COM3'):
         """Start serial connection"""
@@ -372,9 +371,9 @@ class AttocubeComm(serial.Serial):
         self.open()
 
     def send_cmd(self, cmd):
-        """Send command string
+        """Send command string and read response
         @param cmd: String to send
-        @return 0
+        @return list read_string: List of lines read from port
         Throws SerialException if port is not working properly
         """
         # Encode command and ensure it ends with CRLF
@@ -387,10 +386,7 @@ class AttocubeComm(serial.Serial):
         # Write command
         self.write(cmd_encoded)
 
-        time.sleep(0.05)
-
-        # Read-back:
-        read_bytes = self.read(self.in_waiting)
+        read_bytes = self.read_until(b'>')
 
         read_string = read_bytes.decode().split("\r\n")
 
