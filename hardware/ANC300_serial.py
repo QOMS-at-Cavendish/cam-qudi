@@ -363,7 +363,7 @@ class AttocubeComm(serial.Serial):
     def __init__(self,port=None,timeout=0.5,*args,**kwargs):
         """Create serial interface object. Can be called with a port, in 
         which case it opens immediately."""
-        super().__init__(self,port,timeout=timeout, write_timeout=timeout,*args,**kwargs)
+        super().__init__(port,timeout=timeout, write_timeout=timeout,*args,**kwargs)
 
     def connect(self,port='COM3'):
         """Start serial connection"""

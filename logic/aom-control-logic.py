@@ -23,6 +23,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
+from datetime import datetime
 
 from core.connector import Connector
 from core.statusvariable import StatusVar
@@ -49,7 +50,8 @@ class AomControlLogic(GenericLogic):
     photodiode_channel = ConfigOption('photodiode_channel', missing='error')
     aom_channel = ConfigOption('aom_channel', '')
     photodiode_factor = ConfigOption('photodiode_factor', 1.0)
-    query_interval = ConfigOption('query_interval', 50)
+    query_interval = ConfigOption('query_interval', 10)
+    ui_update_interval = ConfigOption('ui_update_interval', 100)
     volt_range = ConfigOption('aom_volt_range', [0, 5])
 
     def __init__(self, config, **kwargs):
@@ -80,6 +82,7 @@ class AomControlLogic(GenericLogic):
         )
 
         self.current_volts = 0
+        self.last_update_time = 0
 
         self.start_poll()
         
@@ -129,18 +132,26 @@ class AomControlLogic(GenericLogic):
                 control_var = self.pid(self.x)
                 self.set_aom_volts(control_var)
         
-            # Convert power to volts using factor
-            power = voltage_reading * self.photodiode_factor
-            power_filtered = self.x * self.photodiode_factor
+            if (self.last_update_time + (self.ui_update_interval - self.query_interval / 2)/1000
+                < datetime.timestamp(datetime.now())):
+                # If UI update interval has passed or will pass within the next
+                # half of a query_interval, emit sigAomUpdated.
+                
+                self.last_update_time = datetime.timestamp(datetime.now())
 
-            output_dict = {
-                'pd-voltage':voltage_reading,
-                'pd-power':power,
-                'pd-power-filtered':power_filtered,
-                'aom-output':self.current_volts
-            }
+                # Convert power to volts using factor
+                power = voltage_reading * self.photodiode_factor
+                power_filtered = self.x * self.photodiode_factor
 
-            self.sigAomUpdated.emit(output_dict)
+                output_dict = {
+                    'pd-voltage':voltage_reading,
+                    'pd-power':power,
+                    'pd-power-filtered':power_filtered,
+                    'aom-output':self.current_volts
+                }
+
+                self.sigAomUpdated.emit(output_dict)
+                
             QtCore.QTimer.singleShot(self.query_interval, self.update_power_reading)
 
         except DAQError as err:
