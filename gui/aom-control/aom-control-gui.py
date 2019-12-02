@@ -89,6 +89,7 @@ class AomControlGui(GUIBase):
 
         # Connect GUI events
         self._mw.output_adj.valueChanged.connect(self.output_slider_moved)
+        self._mw.output_adj.sliderPressed.connect(self.output_slider_pressed)
         self._mw.pid_enable.stateChanged.connect(self.enable_pid)
         self._mw.setpoint.editingFinished.connect(self.setpoint_changed)
 
@@ -154,6 +155,10 @@ class AomControlGui(GUIBase):
         self.aom_logic.enable_pid(False)
         self._mw.pid_enable.setChecked(False)
         self.aom_logic.set_aom_volts(volts)
+
+    def output_slider_pressed(self):
+        val = self._mw.output_adj.value()
+        self.output_slider_moved(val)
 
     def enable_pid(self, val):
         """
