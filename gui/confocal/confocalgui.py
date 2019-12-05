@@ -369,7 +369,13 @@ class ConfocalGui(GUIBase):
         self._mw.z_max_InputWidget.editingFinished.connect(self.change_z_image_range)
 
         self._mw.centre_scan_btn.clicked.connect(self.set_confocal_to_centre)
-        self._mw.range_50um_btn.clicked.connect(self.set_50um_range)
+        self._mw.save_range_PushButton.clicked.connect(self.save_current_range)
+        self._mw.recall_range_PushButton.clicked.connect(self.recall_range)
+
+        self._x_max = 5E-5
+        self._y_max = 5E-5
+        self._x_min = 0
+        self._y_min = 0
 
         # Connect the change of the viewed area to an adjustment of the ROI:
         self.adjust_cursor_roi = True
@@ -773,7 +779,7 @@ class ConfocalGui(GUIBase):
         self._mw.z_min_InputWidget.setEnabled(False)
         self._mw.z_max_InputWidget.setEnabled(False)
 
-        self._mw.range_50um_btn.setEnabled(False)
+        self._mw.recall_range_PushButton.setEnabled(False)
 
         self._mw.xy_res_InputWidget.setEnabled(False)
         self._mw.z_res_InputWidget.setEnabled(False)
@@ -805,7 +811,7 @@ class ConfocalGui(GUIBase):
         self._mw.z_min_InputWidget.setEnabled(True)
         self._mw.z_max_InputWidget.setEnabled(True)
 
-        self._mw.range_50um_btn.setEnabled(True)
+        self._mw.recall_range_PushButton.setEnabled(True)
 
         self._mw.xy_res_InputWidget.setEnabled(True)
         self._mw.z_res_InputWidget.setEnabled(True)
@@ -1885,13 +1891,22 @@ class ConfocalGui(GUIBase):
         self._mw.x_current_InputWidget.editingFinished.emit()
         self._mw.y_current_InputWidget.editingFinished.emit()
 
-    def set_50um_range(self):
-        """ Set current scan range to 50 um """
-        self._mw.x_max_InputWidget.setValue(5E-5)
-        self._mw.y_max_InputWidget.setValue(5E-5)
-        
-        self._mw.x_min_InputWidget.setValue(0)
-        self._mw.y_min_InputWidget.setValue(0)
+    def save_current_range(self):
+        """ Save currently set range """
+        self._x_max = self._mw.x_max_InputWidget.value()
+        self._y_max = self._mw.y_max_InputWidget.value()
+
+        self._x_min = self._mw.x_min_InputWidget.value()
+        self._y_min = self._mw.y_min_InputWidget.value()
+
+    def recall_range(self):
+        """ Recall saved range """
+        self._mw.x_max_InputWidget.setValue(self._x_max)
+        self._mw.y_max_InputWidget.setValue(self._y_max)
+        self._mw.x_min_InputWidget.setValue(self._x_min)
+        self._mw.y_min_InputWidget.setValue(self._y_min)
 
         self._mw.x_max_InputWidget.editingFinished.emit()
         self._mw.y_max_InputWidget.editingFinished.emit()
+        self._mw.x_min_InputWidget.editingFinished.emit()
+        self._mw.y_min_InputWidget.editingFinished.emit()
