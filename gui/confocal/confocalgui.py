@@ -1882,11 +1882,8 @@ class ConfocalGui(GUIBase):
         y_max = self._mw.y_max_InputWidget.value()
         y_min = self._mw.y_min_InputWidget.value()
 
-        x_range = x_max - x_min
-        y_range = y_max - y_min
-
-        self._mw.x_current_InputWidget.setValue(x_range/2)
-        self._mw.y_current_InputWidget.setValue(y_range/2)
+        self._mw.x_current_InputWidget.setValue((x_max + x_min)/2)
+        self._mw.y_current_InputWidget.setValue((y_max + y_min)/2)
 
         self._mw.x_current_InputWidget.editingFinished.emit()
         self._mw.y_current_InputWidget.editingFinished.emit()
