@@ -28,6 +28,7 @@ from qtpy import QtCore
 from qtpy import uic
 import pyqtgraph as pg
 import functools
+import pandas
 
 from qtwidgets.joystick import Joystick
 
@@ -152,6 +153,8 @@ class StagecontrolGui(GUIBase):
         self._mw.delete_item_pushButton.clicked.connect(self.delete_position)
         self._mw.save_position_pushButton.clicked.connect(self.save_position)
         self._mw.goto_saved_pushButton.clicked.connect(self.goto_saved_position)
+        self._mw.savetofile_pushButton.clicked.connect(self.save_positions_to_file)
+        self._mw.loadfromfile_pushButton.clicked.connect(self.load_positions_from_file)
         
     def show(self):
         """Make window visible and put it above all other windows.
@@ -545,3 +548,71 @@ class StagecontrolGui(GUIBase):
         self._mw.position_TableWidget.setItem(row_count, 0, x_item)
         self._mw.position_TableWidget.setItem(row_count, 1, y_item)
         self._mw.position_TableWidget.setItem(row_count, 2, z_item)
+
+    def save_positions_to_file(self):
+        """Save position list to file"""
+        filename = QtWidgets.QFileDialog.getSaveFileName(self._mw, "Save position list", filter='*.csv')
+
+        if filename[0] == '':
+            return
+
+        self.log.info("Saved position list to {}".format(filename[0]))
+
+        row_count = self._mw.position_TableWidget.rowCount()
+
+        position_data = []
+
+        for row in range(0, row_count):
+            x_item = self._mw.position_TableWidget.item(row, 0)
+            y_item = self._mw.position_TableWidget.item(row, 1)
+            z_item = self._mw.position_TableWidget.item(row, 2)
+            description_item = self._mw.position_TableWidget.item(row, 3)
+
+            if x_item is None:
+                x = ''
+            else:
+                x = x_item.text()
+            if y_item is None:
+                y = ''
+            else:
+                y = y_item.text()
+            if z_item is None:
+                z = ''
+            else:
+                z = z_item.text()
+            if description_item is None:
+                description = ''
+            else:
+                description = description_item.text()
+
+            position_data.append([x, y, z, description])
+
+        df = pandas.DataFrame(position_data, columns=['x', 'y', 'z', 'description'])
+
+        df.to_csv(filename[0])
+            
+    def load_positions_from_file(self):
+        """Load position list from file"""
+        filename = QtWidgets.QFileDialog.getOpenFileName(self._mw, "Load position list", filter='*.csv')
+
+        if filename[0] == '':
+            return
+
+        data = pandas.read_csv(filename[0])
+
+        data.fillna('', inplace=True)
+
+        current_row_count = self._mw.position_TableWidget.rowCount()
+
+        self._mw.position_TableWidget.setRowCount(len(data.index) + current_row_count)
+
+        for index, row in data.iterrows():
+            x_item = QtWidgets.QTableWidgetItem(str(row['x']))
+            y_item = QtWidgets.QTableWidgetItem(str(row['y']))
+            z_item = QtWidgets.QTableWidgetItem(str(row['z']))
+            description_item = QtWidgets.QTableWidgetItem(str(row['description']))
+
+            self._mw.position_TableWidget.setItem(index + current_row_count, 0, x_item)
+            self._mw.position_TableWidget.setItem(index + current_row_count, 1, y_item)
+            self._mw.position_TableWidget.setItem(index + current_row_count, 2, z_item)
+            self._mw.position_TableWidget.setItem(index + current_row_count, 3, description_item)
