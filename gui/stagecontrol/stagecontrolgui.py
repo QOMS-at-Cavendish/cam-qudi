@@ -522,17 +522,17 @@ class StagecontrolGui(GUIBase):
         row = self._mw.position_TableWidget.currentRow()
         x = self._mw.position_TableWidget.item(row, 0)
         y = self._mw.position_TableWidget.item(row, 1)
-        z = self._mw.position_TableWidget.item(row, 2)
-        
+        z = self._mw.position_TableWidget.item(row, 2)     
+
         # Construct move_dict
         move_dict = {}
-        if x is not None:
+        if x is not None and x.text() != '':
             move_dict['x'] = float(x.text())
 
-        if y is not None:
+        if y is not None and y.text() != '':
             move_dict['y'] = float(y.text())
 
-        if z is not None:
+        if z is not None and z.text() != '':
             move_dict['z'] = float(z.text())
 
         self.stagecontrol_logic.move_abs(move_dict)
