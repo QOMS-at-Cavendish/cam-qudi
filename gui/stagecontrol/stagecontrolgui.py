@@ -80,6 +80,10 @@ class StagecontrolGui(GUIBase):
         # Create main window instance
         self._mw = StagecontrolMainWindow()
 
+        # Ensure table headers visible
+        self._mw.position_TableWidget.horizontalHeader().setVisible(True)
+        self._mw.position_TableWidget.verticalHeader().setVisible(True)
+
         # Set up counts vs z plot
         self._mw.plot.setLabel('left', 'Counts', units='cps')
         self._mw.plot.setLabel('bottom', 'Z position', units='steps')
@@ -98,7 +102,7 @@ class StagecontrolGui(GUIBase):
         # Show or hide attocube tab depending on reported hardware
         if self.stagecontrol_logic.get_hw_manufacturer() != 'Attocube':
             # Remove attocube tab
-            self._mw.tabWidget.removeTab(2)
+            self._mw.tabWidget.removeTab(3)
 
         ###################
         # Connect UI events
@@ -142,6 +146,12 @@ class StagecontrolGui(GUIBase):
         self._mw.x_pos_entry.textChanged.connect(self.x_changed)
         self._mw.y_pos_entry.textChanged.connect(self.y_changed)
         self._mw.z_pos_entry.textChanged.connect(self.z_changed)
+
+        # Position saving buttons
+        self._mw.add_item_pushButton.clicked.connect(self.add_position)
+        self._mw.delete_item_pushButton.clicked.connect(self.delete_position)
+        self._mw.save_position_pushButton.clicked.connect(self.save_position)
+        self._mw.goto_saved_pushButton.clicked.connect(self.goto_saved_position)
         
     def show(self):
         """Make window visible and put it above all other windows.
@@ -495,3 +505,43 @@ class StagecontrolGui(GUIBase):
             velocity_dict['z'] = float(z_vel)
 
         self.stagecontrol_logic.set_velocities(velocity_dict)
+
+    def add_position(self):
+        row_count = self._mw.position_TableWidget.rowCount()
+        self._mw.position_TableWidget.setRowCount(row_count + 1)
+
+    def delete_position(self):
+        row = self._mw.position_TableWidget.currentRow()
+        if row is not None:
+            self._mw.position_TableWidget.removeRow(row)
+
+    def goto_saved_position(self):
+        row = self._mw.position_TableWidget.currentRow()
+        x = self._mw.position_TableWidget.item(row, 0)
+        y = self._mw.position_TableWidget.item(row, 1)
+        z = self._mw.position_TableWidget.item(row, 2)
+        
+        # Construct move_dict
+        move_dict = {}
+        if x is not None:
+            move_dict['x'] = float(x.text())
+
+        if y is not None:
+            move_dict['y'] = float(y.text())
+
+        if z is not None:
+            move_dict['z'] = float(z.text())
+
+        self.stagecontrol_logic.move_abs(move_dict)
+
+
+    def save_position(self):
+        row_count = self._mw.position_TableWidget.rowCount()
+        self._mw.position_TableWidget.setRowCount(row_count + 1)
+        x_item = QtWidgets.QTableWidgetItem(self._mw.x_pos.text())
+        y_item = QtWidgets.QTableWidgetItem(self._mw.y_pos.text())
+        z_item = QtWidgets.QTableWidgetItem(self._mw.z_pos.text())
+        self.log.debug(x_item.text())
+        self._mw.position_TableWidget.setItem(row_count, 0, x_item)
+        self._mw.position_TableWidget.setItem(row_count, 1, y_item)
+        self._mw.position_TableWidget.setItem(row_count, 2, z_item)

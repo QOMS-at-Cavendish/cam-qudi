@@ -598,6 +598,153 @@
       </widget>
      </widget>
     </widget>
+    <widget class="QWidget" name="Saved_pos">
+     <attribute name="title">
+      <string>Saved positions</string>
+     </attribute>
+     <widget class="QTableWidget" name="position_TableWidget">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>20</y>
+        <width>591</width>
+        <height>311</height>
+       </rect>
+      </property>
+      <property name="alternatingRowColors">
+       <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="showGrid">
+       <bool>true</bool>
+      </property>
+      <property name="gridStyle">
+       <enum>Qt::DotLine</enum>
+      </property>
+      <property name="cornerButtonEnabled">
+       <bool>true</bool>
+      </property>
+      <property name="rowCount">
+       <number>1</number>
+      </property>
+      <property name="columnCount">
+       <number>4</number>
+      </property>
+      <attribute name="horizontalHeaderVisible">
+       <bool>false</bool>
+      </attribute>
+      <attribute name="horizontalHeaderCascadingSectionResizes">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="verticalHeaderVisible">
+       <bool>false</bool>
+      </attribute>
+      <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+       <bool>false</bool>
+      </attribute>
+      <row/>
+      <column>
+       <property name="text">
+        <string>x</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>y</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>z</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Description</string>
+       </property>
+      </column>
+      <item row="0" column="0">
+       <property name="text">
+        <string>25.00000</string>
+       </property>
+      </item>
+      <item row="0" column="1">
+       <property name="text">
+        <string>6.25000</string>
+       </property>
+      </item>
+      <item row="0" column="2">
+       <property name="text">
+        <string>25.00000</string>
+       </property>
+      </item>
+      <item row="0" column="3">
+       <property name="text">
+        <string>Home</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QPushButton" name="add_item_pushButton">
+      <property name="geometry">
+       <rect>
+        <x>630</x>
+        <y>20</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Add</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="delete_item_pushButton">
+      <property name="geometry">
+       <rect>
+        <x>630</x>
+        <y>60</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Delete</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="goto_saved_pushButton">
+      <property name="geometry">
+       <rect>
+        <x>630</x>
+        <y>100</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Go to</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="save_position_pushButton">
+      <property name="geometry">
+       <rect>
+        <x>630</x>
+        <y>140</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Save current</string>
+      </property>
+     </widget>
+    </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
       <string>Optimisation</string>
