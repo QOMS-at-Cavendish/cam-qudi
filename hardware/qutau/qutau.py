@@ -1,0 +1,210 @@
+# -*- coding: utf-8 -*-
+"""
+Qudi hardware interface to QuTau time-tagger.
+
+Implements slow_counter_interface.
+
+John Jarman jcj27@cam.ac.uk
+
+Qudi is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Qudi is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Qudi. If not, see <http://www.gnu.org/licenses/>.
+
+Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
+top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
+"""
+
+import numpy as np
+import hardware.qutau.qutaupy as qutaupy
+import time
+
+from core.module import Base
+from core.configoption import ConfigOption
+from interface.slow_counter_interface import SlowCounterInterface
+from interface.slow_counter_interface import SlowCounterConstraints, CountingMode
+
+class QuTau(Base, SlowCounterInterface):
+    """ A QuTau time-to-digital converter.
+
+    Can serve as a photon counter (implementing SlowCounterInterface)
+    TODO: Implement photon correlation function (start-stop histogram)
+
+    Example config for copy-paste:
+
+    qutau:
+        module.Class: 'qutau.qutau.QuTau'
+        enabled_channels: [1, 2]
+    """
+
+    _modtype = 'QuTau'
+    _modclass = 'hardware'
+
+    #######################
+    # Configuration options
+    #######################
+
+    _dll_name = ConfigOption('dll_name', default='tdcbase.dll')
+    _dll_path = ConfigOption(
+        'dll_path',
+        default="C:\\Program Files (x86)\\qutools\\quTAU\\userlib\\lib64\\"
+    )
+    _enabled_channels = ConfigOption('enabled_channels', missing='error')
+    _default_clock = ConfigOption('default_clock_freq', default=10)
+
+    ###############
+    # Class methods
+    ###############
+
+    def on_activate(self):
+        """ Starts up qutau on module activation.
+        """
+        # Create QuTau object and try to connect (to any available device)
+        self.qutau = qutaupy.QuTau(self._dll_name, self._dll_path)
+        self.qutau.init(-1)
+
+        self.channel_bitmask = 0
+        self.enabled_channels = []
+
+        # This is used for blocking execution in get_counter for correct time
+        self.last_called_time = 0
+
+        # Get enabled channels
+        for channel in range(1, 9):
+            if channel in self._enabled_channels:
+                self.channel_bitmask = 2**(channel-1) | self.channel_bitmask
+                self.enabled_channels.append(channel)
+        # Enable channels
+        self.qutau.enableChannels(self.channel_bitmask)
+
+        # Set qutau exposure time
+        self.set_up_clock(clock_frequency=self._default_clock)
+
+        
+
+    def on_deactivate(self):
+        """ Shuts down qutau on module deactivation.
+        """
+        self.qutau.deInit()
+
+    #####################################
+    # SlowCounterInterface implementation
+    #####################################
+
+    def get_constraints(self):
+        """ Returns hardware limits on qutau's counting ability.
+
+        @return SlowCounterConstraints: object with constraints.
+        """
+        c = SlowCounterConstraints()
+        c.max_detectors = 8
+
+        # Highest count frequency limited by min exposure time (1 ms)
+        c.max_count_frequency = 1/1e-3
+
+        # Lowest count frequency limited by max exposure time (65536 ms)
+        c.min_count_frequency = 1/65.5
+
+        c.counting_mode = [CountingMode.CONTINUOUS]
+
+        return c
+
+    def set_up_clock(self, clock_frequency = None, clock_channel = None):
+        """ Sets exposure time on the Qutau.
+
+        This function uses the reciprocal of the clock_frequency parameter to 
+        set the exposure time on the qutau.
+
+        @param float clock_frequency: Set update frequency in Hz
+        Ignores clock_channel.
+        """
+        if clock_frequency is None:
+            # Set default clock if none specified
+            self.clock_frequency = self._default_clock
+        else:
+            self.clock_frequency = clock_frequency
+
+        # self.clock_frequency is in Hz, setExposureTime needs milliseconds
+        self.qutau.setExposureTime(round(1000/(self.clock_frequency)))
+
+        return 0
+
+    def set_up_counter(
+            self, counter_channels=None, sources=None, clock_channel=None,
+            counter_buffer=None):
+        """ No-op
+        
+        counter_logic calls this without arguments, so we can hopefully ignore
+        it
+        """
+        return 0
+
+    def get_counter(self, samples=None):
+        """ Returns the current counts per second of the counter.
+
+        counter_logic expects this function to block execution until new counts
+        are available.
+
+        This function therefore blocks execution until both 1/clock_frequency 
+        time has passed since the last call of this function and the qutau
+        reports that it has updated its internal counters.
+
+        @param int samples: Optional: read this many samples from the counter
+
+        @return numpy.array of photon counts per second for each channel
+                (dtype=uint32) <- not sure if this is necessary but it is
+                                    specified in slow_counter_interface
+        """
+        delay = 1/self.clock_frequency
+        current_time = time.monotonic()
+        if current_time - self.last_called_time < delay:
+            # Block execution if not enough time has passed since last call
+            time.sleep(self.last_called_time + delay - current_time)
+
+        self.last_called_time = time.monotonic()
+
+        # Get data from qutau, or spin if there hasn't been an update yet.
+        data = None
+        num_updates = 0
+        while num_updates == 0:
+            r = self.qutau.getCoincCounters()
+            data = r['data']
+            num_updates = r['updates']
+            if num_updates == 0:
+                time.sleep(1e-3)
+
+        # Restrict data to enabled channels
+        output_data = np.zeros((len(self.enabled_channels),1), dtype=np.uint32)
+        for channel in self.enabled_channels:
+            output_data[channel-1, 0] = data[channel-1] * self.clock_frequency
+        return output_data
+
+    def get_counter_channels(self):
+        """ Returns the list of counter channel names.
+
+        @return list(str): channel names
+        """
+        return [str(channel) for channel in self.enabled_channels]
+
+    def close_counter(self):
+        """ No-op
+
+        @return int: 0
+        """
+        
+        return 0
+
+    def close_clock(self):
+        """ No-op
+
+        @return int: 0
+        """
+        return 0
