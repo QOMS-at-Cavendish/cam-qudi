@@ -118,8 +118,8 @@ class StagecontrolGui(GUIBase):
         self._mw.z_up_btn.pressed.connect(self.z_up)
         self._mw.z_down_btn.pressed.connect(self.z_down)
 
-        self._mw.z_up_btn.released.connect(self.direction_btn_released)
-        self._mw.z_down_btn.released.connect(self.direction_btn_released)
+        self._mw.z_up_btn.released.connect(self.z_released)
+        self._mw.z_down_btn.released.connect(self.z_released)
 
         # Parameter get/set buttons
         self._mw.set_x_btn.clicked.connect(self.set_x_params)
@@ -245,14 +245,12 @@ class StagecontrolGui(GUIBase):
             self.stagecontrol_logic.step('x', 1)
 
     def y_up(self):
-        """Direction button callback"""
         if self._mw.continuous.isChecked():
             self.stagecontrol_logic.start_jog('y', False)
         else:
             self.stagecontrol_logic.step('y', 1)
 
     def y_down(self):
-        """Direction button callback"""
         if self._mw.continuous.isChecked():
             self.stagecontrol_logic.start_jog('y', True)
         else:
@@ -272,9 +270,9 @@ class StagecontrolGui(GUIBase):
         else:
             self.stagecontrol_logic.step('z', -1)
 
-    def direction_btn_released(self):
-        """Direction button release callback"""
-        self.stop_movement()
+    def z_released(self):
+        """Z button release callback"""
+        self.stagecontrol_logic.stop_axis('z')
 
     @value_error_handler
     def set_x_params(self,msg):
