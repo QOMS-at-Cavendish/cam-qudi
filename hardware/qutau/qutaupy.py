@@ -873,7 +873,7 @@ class QuTau:
             raise QuTauError(rc)
 
     
-    def TDC_inputTimestamps(self, timestamps, channels):
+    def inputTimestamps(self, timestamps, channels):
         """
         Input Synthetic Timestamps
 

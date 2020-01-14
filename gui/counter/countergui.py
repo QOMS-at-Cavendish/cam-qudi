@@ -97,12 +97,7 @@ class CounterGui(GUIBase):
                 self._pw.addItem(self.curves[-1])
             else:
                 self.curves.append(
-                    pg.PlotDataItem(
-                        pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
-                        symbol='s',
-                        symbolPen=palette.c3,
-                        symbolBrush=palette.c3,
-                        symbolSize=5))
+                    pg.PlotDataItem(pen=pg.mkPen(palette.c3), symbol=None))
                 self._pw.addItem(self.curves[-1])
                 self.curves.append(
                     pg.PlotDataItem(pen=pg.mkPen(palette.c4, width=3), symbol=None))
