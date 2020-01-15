@@ -101,7 +101,9 @@ class SlowcounterScannerInterfuse(GenericLogic, ConfocalScannerInterface):
 
             if self.scanner_set_position(**pos) != 0:
                 return
-
+            # Ensure we always get freshest counts
+            # First call clears buffer, second waits for new counts
+            self._counter_hw.get_counter()
             counts = self._counter_hw.get_counter()
             count_data[i, :] = counts[0, :]
         

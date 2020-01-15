@@ -68,6 +68,8 @@ class QuTau(Base, SlowCounterInterface):
     # If this is true, sum up all channels for slow_counter_interface methods
     _sum_all_channels = ConfigOption('sum_all_channels', default=False)
 
+    _timeout = ConfigOption('counter_timeout', 5)
+
     ###############
     # Class methods
     ###############
@@ -289,23 +291,25 @@ class QuTau(Base, SlowCounterInterface):
                 (dtype=uint32) <- not sure if this is necessary but it is
                                     specified in slow_counter_interface
         """
-        delay = 1/self.clock_frequency
-        current_time = time.monotonic()
-        if current_time - self.last_called_time < delay:
-            # Block execution if not enough time has passed since last call
-            time.sleep(self.last_called_time + delay - current_time)
-
-        self.last_called_time = time.monotonic()
 
         # Get data from qutau, or spin if there hasn't been an update yet.
+        # Time out and return -1 if this takes more than _timeout seconds.
         data = None
         num_updates = 0
+        t = time.monotonic()
         while num_updates == 0:
             r = self.qutau.getCoincCounters()
             data = r['data']
             num_updates = r['updates']
             if num_updates == 0:
                 time.sleep(1e-3)
+                if time.monotonic() - t > self._timeout:
+                    # Return -1 if timeout occurs
+                    # Has to be a numpy array so it works with counter_logic
+                    # (this is why exceptions are a good idea...)
+                    return np.ones(
+                        (len(self.get_counter_channels()), 1),
+                         dtype=np.uint32) * -1
 
         if self._sum_all_channels:
             # Sum all channels together and return 1 count trace
