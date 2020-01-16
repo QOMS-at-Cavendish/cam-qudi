@@ -29,6 +29,7 @@ from core.module import Connector
 from core.configoption import ConfigOption
 from qtpy import QtCore
 
+import matplotlib.pyplot as plt
 
 class HbtLogic(GenericLogic):
     """
@@ -128,9 +129,23 @@ class HbtLogic(GenericLogic):
         data['Time (s)'] = histogram[:, 0]
         data['g2(t)'] = histogram[:, 1]
 
+        timebase = self._qutau.get_bin_length()
+
+        params = {
+            'Bin width (HW bins)':self.bin_width,
+            'Bin count':self.bin_count,
+            'Exposure time (s)':self._qutau.hist_exposure_time*timebase,
+            'Start channel':self.start_channel,
+            'Stop channel':self.stop_channel,
+            'Ch1 Delay (HW bins)':self.delay,
+            'HW bin length (ps)':timebase*1e12
+        }
+
+        plot = self._create_figure(histogram)
+
         self._save_logic.save_data(
             data, filepath=filepath, filelabel='g2data', 
-            fmt=['%.6e', '%.6e'])
+            fmt=['%.6e', '%.6e'], parameters=params, plotfig=plot)
         self.log.debug('HBT data saved to:\n{0}'.format(filepath))
 
         self.hbt_saved.emit()
@@ -181,3 +196,17 @@ class HbtLogic(GenericLogic):
         """ Get hardware bin length in seconds
         """
         return self._qutau.get_bin_length()
+
+    def _create_figure(self, histogram):
+        """ Creates matplotlib figure for saving
+        """
+        # Use qudi style
+        plt.style.use(self._save_logic.mpl_qd_style)
+        # Create figure
+        fig, ax = plt.subplots()
+        ax.set_xlabel('Time delay (ns)')
+        ax.set_ylabel('Coincidences')
+
+        ax.plot(histogram[:, 0]*1e9, histogram[:, 1])
+
+        return fig

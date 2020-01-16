@@ -105,6 +105,8 @@ class QuTau(Base, SlowCounterInterface):
         # Set defaults
         self.enable_histogram(self._enable_histogram)
 
+        self.hist_exposure_time = 0
+
         if self.startstop_enabled:
             self.set_delays(self._default_delays)
             self.set_histogram_params(
@@ -188,6 +190,8 @@ class QuTau(Base, SlowCounterInterface):
             hist[:, 1] = data['data'] / data['count']
         else:
             hist[:, 1] = data['data']
+
+        self.hist_exposure_time = data['expTime']
 
         return hist
         
