@@ -83,6 +83,9 @@ class AomControlLogic(GenericLogic):
 
         self.current_volts = 0
         self.last_update_time = 0
+        self.power = 0
+        self.power_filtered = 0
+        self.voltage_reading = 0
 
         self.start_poll()
         
@@ -116,7 +119,7 @@ class AomControlLogic(GenericLogic):
 
         try:
             # Read voltage from photodiode
-            voltage_reading = np.mean(self.daqcard.analog_channel_read(self.photodiode_channel))
+            self.voltage_reading = np.mean(self.daqcard.analog_channel_read(self.photodiode_channel))
 
             # Do Kalman filtering
             prev_x = self.x
@@ -125,7 +128,7 @@ class AomControlLogic(GenericLogic):
             # Estimate Kalman amplitude
             K = estimate_P / (estimate_P + self.R)
 
-            self.x = prev_x + K * (voltage_reading - prev_x)
+            self.x = prev_x + K * (self.voltage_reading - prev_x)
             self.P = (1-K) * estimate_P
 
             if self.pid_enabled:
@@ -140,13 +143,13 @@ class AomControlLogic(GenericLogic):
                 self.last_update_time = datetime.timestamp(datetime.now())
 
                 # Convert power to volts using factor
-                power = voltage_reading * self.photodiode_factor
-                power_filtered = self.x * self.photodiode_factor
+                self.power = self.voltage_reading * self.photodiode_factor
+                self.power_filtered = self.x * self.photodiode_factor
 
                 output_dict = {
-                    'pd-voltage':voltage_reading,
-                    'pd-power':power,
-                    'pd-power-filtered':power_filtered,
+                    'pd-voltage':self.voltage_reading,
+                    'pd-power':self.power,
+                    'pd-power-filtered':self.power_filtered,
                     'aom-output':self.current_volts
                 }
 
