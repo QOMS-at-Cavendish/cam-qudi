@@ -281,8 +281,7 @@ class QuTau(Base, SlowCounterInterface):
         counter_logic expects this function to block execution until new counts
         are available.
 
-        This function therefore blocks execution until both 1/clock_frequency 
-        time has passed since the last call of this function and the qutau
+        This function therefore blocks execution until the qutau
         reports that it has updated its internal counters.
 
         @param int samples: Optional: read this many samples from the counter
