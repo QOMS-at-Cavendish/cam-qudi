@@ -4,6 +4,7 @@
 
 Changes/New features:
 
+* Saving data in confocal GUI no longer freezes other GUI modules
 * Cleanup/Improvement/Debug of POI manager (logic and GUI)
 * New POI manager tool _POI selector_ which allows adding of new POIs by clicking inside the scan 
 image
