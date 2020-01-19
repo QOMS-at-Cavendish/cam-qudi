@@ -196,7 +196,7 @@ class RegionOfInterest:
         if name not in self._pois:
             raise KeyError('Name "{0}" not found in POI list.'.format(name))
         if new_name in self._pois:
-            raise NameError('New POI name "{0}" already present in current POI list.')
+            raise NameError('New POI name "{0}" already present in current POI list.'.format(new_name))
         self._pois[name].name = new_name
         self._pois[new_name] = self._pois.pop(name)
         return
@@ -409,6 +409,9 @@ class PoiManagerLogic(GenericLogic):
             self.start_periodic_refocus, QtCore.Qt.QueuedConnection)
         self.__sigStopPeriodicRefocus.connect(
             self.stop_periodic_refocus, QtCore.Qt.QueuedConnection)
+        # Connect sigPoiUpdated to handle renames/deletes during periodic refocus
+        self.sigPoiUpdated.connect(
+            self._poi_updated, QtCore.Qt.QueuedConnection)
 
         # Initialise the ROI scan image (xy confocal image) if not present
         if self._roi.scan_image is None:
@@ -1256,3 +1259,26 @@ class PoiManagerLogic(GenericLogic):
             self.add_poi(pois[i])
             if self.poi_nametag is None:
                 time.sleep(0.1)
+
+    @QtCore.Slot(str, str, np.ndarray)
+    def _poi_updated(self, old_name, new_name, pos):
+        """ Handles updates of the POI name during periodic refocus.
+
+        If the POI is deleted, stop the periodic refocus task.
+
+        Slot for sigPoiUpdated.
+        """
+        stop_refocus = False
+
+        with self._threadlock:
+            if old_name == self._periodic_refocus_poi:
+                # Update name if event relates to the current refocus task
+                self._periodic_refocus_poi = new_name
+        
+                if new_name == '':
+                    # POI deleted: stop refocus.
+                    stop_refocus = True
+
+        if stop_refocus:
+            self.log.error('Stopping periodic refocus: POI deleted')
+            self.stop_periodic_refocus()
