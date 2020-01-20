@@ -34,6 +34,7 @@ import pyqtgraph as pg
 
 from core.module import Connector
 from core.configoption import ConfigOption
+from qtwidgets.save_dialog import SaveDialog
 from gui.colordefs import QudiPalettePale as palette
 from gui.guibase import GUIBase
 from qtpy import QtCore
@@ -82,6 +83,7 @@ class HbtGui(GUIBase):
         # Qt windows
         self._mw = HbtMainWindow()
         self._sd = HbtSettingsDialog()
+        self._save_dialog = SaveDialog(self._mw)
 
         self.hbt_image = pg.PlotDataItem((0,),
                                          (0,),
@@ -101,7 +103,8 @@ class HbtGui(GUIBase):
 
         #####################
         # Connecting user interactions
-        self._mw.run_hbt_Action.toggled.connect(self.run_hbt_toggled)
+        self._mw.run_hbt_Action.triggered.connect(self._hbt_logic.start_hbt)
+        self._mw.stop_hbt_Action.triggered.connect(self._hbt_logic.stop_hbt)
         self._mw.save_hbt_Action.triggered.connect(self.save_clicked)
         self._mw.clear_hbt_Action.triggered.connect(self.clear_hbt)
         self._mw.histogram_setup_Action.triggered.connect(self._sd.exec_)
@@ -123,16 +126,16 @@ class HbtGui(GUIBase):
         ##################
         # Handling signals from the logic
         self._hbt_logic.hbt_updated.connect(self.update_data)
+        self._hbt_logic.hbt_save_started.connect(self._save_dialog.show)
+        self._hbt_logic.hbt_saved.connect(self._save_dialog.hide)
+        self._hbt_logic.hbt_running.connect(self.update_hbt_run_status)
 
         return 0
 
-    def run_hbt_toggled(self, run):
-        if run:
-            self._mw.run_hbt_Action.setIconText("Stop")
-            self._hbt_logic.start_hbt()
-        else:
-            self._mw.run_hbt_Action.setIconText("Start")
-            self._hbt_logic.stop_hbt()
+    @QtCore.Slot(bool)
+    def update_hbt_run_status(self, status):
+        self._mw.run_hbt_Action.setEnabled(not status)
+        self._mw.stop_hbt_Action.setEnabled(status)
 
     def show(self):
         """Make window visible and put it above all other windows.

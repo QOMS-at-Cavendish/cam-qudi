@@ -66,6 +66,7 @@ class HbtLogic(GenericLogic):
     hbt_updated = QtCore.Signal()
     hbt_save_started = QtCore.Signal()
     hbt_saved = QtCore.Signal()
+    hbt_running = QtCore.Signal(bool)
 
     _sig_start_hbt = QtCore.Signal()
     _sig_stop_hbt = QtCore.Signal()
@@ -94,6 +95,7 @@ class HbtLogic(GenericLogic):
         self._hbt_running = False
     
     def start_hbt(self):
+        self.hbt_running.emit(True)
         self._sig_start_hbt.emit()
 
     def _start_hbt(self):
@@ -107,6 +109,7 @@ class HbtLogic(GenericLogic):
         self._update_timer.start(round(1000/self._update_rate))
 
     def stop_hbt(self):
+        self.hbt_running.emit(False)
         self._sig_stop_hbt.emit()
 
     def _stop_hbt(self):
@@ -131,6 +134,7 @@ class HbtLogic(GenericLogic):
 
     def _save_hbt(self):
         # File path and name
+        self.hbt_save_started.emit()
         filepath = self._save_logic.get_path_for_module(module_name='HBT')
 
         histogram = self.get_data()

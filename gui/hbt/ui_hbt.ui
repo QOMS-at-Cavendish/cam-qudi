@@ -48,6 +48,9 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="counting_control_ToolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="windowTitle">
     <string>Counting Controls</string>
    </property>
@@ -61,12 +64,13 @@
     <bool>false</bool>
    </attribute>
    <addaction name="run_hbt_Action"/>
+   <addaction name="stop_hbt_Action"/>
    <addaction name="save_hbt_Action"/>
    <addaction name="clear_hbt_Action"/>
   </widget>
   <action name="run_hbt_Action">
    <property name="checkable">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="icon">
     <iconset>
@@ -80,6 +84,9 @@
    </property>
    <property name="toolTip">
     <string>Start an HBT measurement</string>
+   </property>
+   <property name="autoRepeat">
+    <bool>false</bool>
    </property>
   </action>
   <action name="save_hbt_Action">
@@ -118,6 +125,21 @@
   <action name="histogram_setup_Action">
    <property name="text">
     <string>Histogram setup</string>
+   </property>
+  </action>
+  <action name="stop_hbt_Action">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop HBT</string>
    </property>
   </action>
  </widget>
