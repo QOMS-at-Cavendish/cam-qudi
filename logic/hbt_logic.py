@@ -64,10 +64,12 @@ class HbtLogic(GenericLogic):
     qutau = Connector(interface='QuTau')
 
     hbt_updated = QtCore.Signal()
+    hbt_save_started = QtCore.Signal()
     hbt_saved = QtCore.Signal()
 
     _sig_start_hbt = QtCore.Signal()
     _sig_stop_hbt = QtCore.Signal()
+    _sig_save_hbt = QtCore.Signal()
 
     def on_activate(self):
         """ Sets up qutau for histogram measurements.
@@ -82,6 +84,7 @@ class HbtLogic(GenericLogic):
 
         self._sig_start_hbt.connect(self._start_hbt)
         self._sig_stop_hbt.connect(self._stop_hbt)
+        self._sig_save_hbt.connect(self._save_hbt)
 
         # At the moment, the Qutau handles all the histogram acquisition, so
         # just emit update available signal periodically for GUI.
@@ -121,6 +124,12 @@ class HbtLogic(GenericLogic):
         return self._qutau.get_histogram(self.start_channel, self.stop_channel)
 
     def save_hbt(self):
+        """ Save current HBT data
+        """
+        # Emit save signal to run save in logic thread
+        self._sig_save_hbt.emit()
+
+    def _save_hbt(self):
         # File path and name
         filepath = self._save_logic.get_path_for_module(module_name='HBT')
 
