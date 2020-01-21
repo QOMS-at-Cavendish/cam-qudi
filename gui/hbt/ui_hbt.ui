@@ -37,14 +37,7 @@
     <addaction name="separator"/>
     <addaction name="actionClose"/>
    </widget>
-   <widget class="QMenu" name="menu_Settings">
-    <property name="title">
-     <string>&amp;Settings</string>
-    </property>
-    <addaction name="histogram_setup_Action"/>
-   </widget>
    <addaction name="menuView"/>
-   <addaction name="menu_Settings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="counting_control_ToolBar">
@@ -67,6 +60,9 @@
    <addaction name="stop_hbt_Action"/>
    <addaction name="save_hbt_Action"/>
    <addaction name="clear_hbt_Action"/>
+   <addaction name="histogram_setup_Action"/>
+   <addaction name="separator"/>
+   <addaction name="record_timestamps_Action"/>
   </widget>
   <action name="run_hbt_Action">
    <property name="checkable">
@@ -123,8 +119,12 @@
    </property>
   </action>
   <action name="histogram_setup_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/configure.png</normaloff>../../artwork/icons/oxygen/22x22/configure.png</iconset>
+   </property>
    <property name="text">
-    <string>Histogram setup</string>
+    <string>Settings</string>
    </property>
   </action>
   <action name="stop_hbt_Action">
@@ -140,6 +140,18 @@
    </property>
    <property name="toolTip">
     <string>Stop HBT</string>
+   </property>
+  </action>
+  <action name="record_timestamps_Action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Record timestamps</string>
    </property>
   </action>
  </widget>

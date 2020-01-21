@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>338</width>
-    <height>298</height>
+    <height>369</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>240</y>
+     <y>320</y>
      <width>291</width>
      <height>32</height>
     </rect>
@@ -215,6 +215,42 @@
    <property name="text">
     <string>0 ps</string>
    </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_2">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>240</y>
+     <width>301</width>
+     <height>80</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Timestamp recording</string>
+   </property>
+   <widget class="QLabel" name="label_12">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Max file size (GB)</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="max_filesize_lineEdit">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>30</y>
+      <width>101</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>

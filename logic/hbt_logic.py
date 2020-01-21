@@ -30,6 +30,7 @@ from core.configoption import ConfigOption
 from qtpy import QtCore
 
 import matplotlib.pyplot as plt
+import os
 
 class HbtLogic(GenericLogic):
     """
@@ -58,6 +59,9 @@ class HbtLogic(GenericLogic):
     # Update rate in Hz
     _update_rate = ConfigOption('update_rate', 1)
 
+    # Max filesize for saved timestamp data (bytes)
+    _max_filesize = ConfigOption('max_filesize', 10e9)
+
     savelogic = Connector(interface='SaveLogic')
 
     # Currently this logic module is specific to the QuTau
@@ -67,6 +71,9 @@ class HbtLogic(GenericLogic):
     hbt_save_started = QtCore.Signal()
     hbt_saved = QtCore.Signal()
     hbt_running = QtCore.Signal(bool)
+    
+    started_recording = QtCore.Signal()
+    stopped_recording = QtCore.Signal()
 
     _sig_start_hbt = QtCore.Signal()
     _sig_stop_hbt = QtCore.Signal()
@@ -91,6 +98,14 @@ class HbtLogic(GenericLogic):
         # just emit update available signal periodically for GUI.
         self._update_timer = QtCore.QTimer()
         self._update_timer.timeout.connect(self.hbt_updated.emit)
+
+        # Timer for file size checker (10 sec)
+        self._file_check_timer = QtCore.QTimer()
+        self._file_check_timer.timeout.connect(self._check_file)
+        self.started_recording.connect(lambda: self._file_check_timer.start(1e4))
+        self.stopped_recording.connect(self._file_check_timer.stop)
+
+        self.sizelimit = 10e9
 
         self._hbt_running = False
     
@@ -209,6 +224,44 @@ class HbtLogic(GenericLogic):
         """ Get hardware bin length in seconds
         """
         return self._qutau.get_bin_length()
+
+    def enable_recording(self, enable=True):
+        """ Enables recording to file.
+
+        If sizelimit is specified, automatically stop recording if file size
+        exceeds specified limit in bytes.
+
+        @param enable: bool, enable/disable recording to file
+        @param sizelimit: int, specify maximum size of file
+        """
+        if not enable:
+            self._qutau.stop_recording()
+            self.stopped_recording.emit()
+            return
+
+        path = self._save_logic.get_path_for_module('HBT')
+        if os.path.exists(os.path.join(path, 'raw_count_data')):
+            i = 1
+            while os.path.exists(os.path.join(path, 'raw_count_data_{}'.format(i))):
+                i += 1
+            self.filename = os.path.join(path, 'raw_count_data_{}'.format(i))
+        else:
+            self.filename = os.path.join(path, 'raw_count_data')
+
+        self._qutau.record_timestamps(self.filename)
+
+        self.started_recording.emit()
+
+    def _check_file(self):
+        """ Checks if timestamp file has exceeded limit 
+
+        Slot for _file_check_timer timeout
+        """
+        if os.path.getsize(self.filename) > self.sizelimit:
+            self.enable_recording(False)
+            self.log.warn('Stopped recording timestamps: file exceeded '
+                'specified max size {} GB'.format(self.sizelimit/1e9))
+
 
     def _create_figure(self, histogram):
         """ Creates matplotlib figure for saving

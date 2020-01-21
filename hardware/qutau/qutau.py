@@ -227,6 +227,22 @@ class QuTau(Base, SlowCounterInterface):
         """
         return [str(channel) for channel in self.enabled_channels]
 
+    def record_timestamps(self, filename):
+        """ Starts recording timestamps to file.
+
+        Timestamps are recorded in binary format with a 40-byte header, 
+        8 bytes containing the timestamp and 2 bytes indicating the channel. 
+        Little-endian byte order.
+
+        @param filename: Fully-specified filename for saving timestamps on disk
+        """
+        self.qutau.writeTimestamps(
+                filename, qutaupy.TDC_FileFormat.FORMAT_BINARY)
+
+    def stop_recording(self):
+        """ Stops recording timestamps to file. """
+        self.record_timestamps('')
+
     #####################################
     # SlowCounterInterface implementation
     #####################################
@@ -243,7 +259,8 @@ class QuTau(Base, SlowCounterInterface):
         c.max_count_frequency = 1/1e-3
 
         # Lowest count frequency limited by max exposure time (65536 ms)
-        c.min_count_frequency = 1/65.5
+        # or preset timeout, whichever is lower
+        c.min_count_frequency = 1/min(65.5, self._timeout)
 
         c.counting_mode = [CountingMode.CONTINUOUS]
 
@@ -307,12 +324,11 @@ class QuTau(Base, SlowCounterInterface):
             if num_updates == 0:
                 time.sleep(1e-3)
                 if time.monotonic() - t > self._timeout:
-                    # Return -1 if timeout occurs
-                    # Has to be a numpy array so it works with counter_logic
-                    # (this is why exceptions are a good idea...)
-                    return np.ones(
+                    # Return 0 if timeout occurs
+                    # An exception will be raised if a real HW error occurs
+                    return np.zeros(
                         (len(self.get_counter_channels()), 1),
-                         dtype=np.uint32) * -1
+                         dtype=np.uint32)
 
         if self._sum_all_channels:
             # Sum all channels together and return 1 count trace

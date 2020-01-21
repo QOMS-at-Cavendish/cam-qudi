@@ -96,7 +96,7 @@ class HbtGui(GUIBase):
         # Set up HBT plot
         self._mw.hbt_plot_PlotWidget.addItem(self.hbt_image)
         self._mw.hbt_plot_PlotWidget.setLabel(
-            axis='left', text='g2(t)', units='normalised units')
+            axis='left', text='Coincidences', units='Counts')
         self._mw.hbt_plot_PlotWidget.setLabel(
             axis='bottom', text='Time', units='s')
         self._mw.hbt_plot_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
@@ -108,6 +108,7 @@ class HbtGui(GUIBase):
         self._mw.save_hbt_Action.triggered.connect(self.save_clicked)
         self._mw.clear_hbt_Action.triggered.connect(self.clear_hbt)
         self._mw.histogram_setup_Action.triggered.connect(self._sd.exec_)
+        self._mw.record_timestamps_Action.toggled.connect(self.record_clicked)
 
         # Settings dialog
         self._sd.accepted.connect(self.update_settings)
@@ -129,6 +130,10 @@ class HbtGui(GUIBase):
         self._hbt_logic.hbt_save_started.connect(self._save_dialog.show)
         self._hbt_logic.hbt_saved.connect(self._save_dialog.hide)
         self._hbt_logic.hbt_running.connect(self.update_hbt_run_status)
+        self._hbt_logic.started_recording.connect(
+            lambda: self._mw.record_timestamps_Action.setChecked(True))
+        self._hbt_logic.stopped_recording.connect(
+            lambda: self._mw.record_timestamps_Action.setChecked(False))
 
         return 0
 
@@ -169,6 +174,10 @@ class HbtGui(GUIBase):
         """
         self._hbt_logic.clear_hbt()
 
+    @QtCore.Slot(bool)
+    def record_clicked(self, enable):
+        self._hbt_logic.enable_recording(enable)
+
     #################
     # Settings dialog
     #################
@@ -185,6 +194,8 @@ class HbtGui(GUIBase):
             str(self._hbt_logic.stop_channel))
         self._sd.stop_channel_comboBox.setCurrentIndex(idx)
         self._sd.ch1_delay_spinBox.setValue(self._hbt_logic.delay)
+        self._sd.max_filesize_lineEdit.setText(
+            '{}'.format(self._hbt_logic.sizelimit/1e9))
 
     def update_settings(self):
         """ Update logic with values from settings dialog
@@ -195,6 +206,7 @@ class HbtGui(GUIBase):
             start_channel = int(self._sd.start_channel_comboBox.currentText())
             stop_channel = int(self._sd.stop_channel_comboBox.currentText())
             delay = int(self._sd.ch1_delay_spinBox.value())
+            maxsize = float(self._sd.max_filesize_lineEdit.text())
 
             # Only update logic with parameters if they've been altered
             if bin_width == self._hbt_logic.bin_width:
@@ -207,6 +219,8 @@ class HbtGui(GUIBase):
             self._hbt_logic.configure(
                     bin_width, bin_count, start_channel, stop_channel,
                     delay)
+
+            self._hbt_logic.sizelimit = round(maxsize * 1e9)
             
         except ValueError:
             self.log.warn(
