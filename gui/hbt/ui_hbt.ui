@@ -60,9 +60,10 @@
    <addaction name="stop_hbt_Action"/>
    <addaction name="save_hbt_Action"/>
    <addaction name="clear_hbt_Action"/>
-   <addaction name="histogram_setup_Action"/>
    <addaction name="separator"/>
    <addaction name="record_timestamps_Action"/>
+   <addaction name="separator"/>
+   <addaction name="histogram_setup_Action"/>
   </widget>
   <action name="run_hbt_Action">
    <property name="checkable">
@@ -109,7 +110,7 @@
   <action name="clear_hbt_Action">
    <property name="icon">
     <iconset>
-     <normaloff>../../artwork/icons/qudiTheme/22x22/stop-scan.png</normaloff>../../artwork/icons/qudiTheme/22x22/stop-scan.png</iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</iconset>
    </property>
    <property name="text">
     <string>Clear</string>
