@@ -31,6 +31,7 @@ import pyqtgraph as pg
 import functools
 
 from core.connector import Connector
+from core.configoption import ConfigOption
 from gui.guibase import GUIBase
 
 class MimicMainWindow(QtWidgets.QMainWindow):
@@ -52,7 +53,7 @@ class MimicGui(GUIBase):
 
     xseries = Connector(interface='NationalInstrumentsXSeries')
 
-    channel = '/Dev1/PFI9'
+    channel = ConfigOption('channel', '/Dev1/PCIe-6363', missing='warn')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
