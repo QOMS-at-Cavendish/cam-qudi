@@ -3,9 +3,9 @@
 """
 PI C843 stage interface.
 
-Uses interface defined in positioner_interface.py
+Implements interface defined in positioner_interface.py
 
-Uses pyserial for communication.
+Uses pipython library from PI for communication.
 
 John Jarman jcj27@cam.ac.uk
 
@@ -60,25 +60,17 @@ class PI_C843(Base,PositionerInterface):
         port: 1
         axes: {'x':1,'y':2,'z':3}
     """
-
-    _modtype = 'PI_C843'
-    _modclass = 'hardware'
+    # pylint: disable=unsubscriptable-object
 
     port = ConfigOption('port', missing='error')
     axes = ConfigOption('axes', {}, missing='error')
 
     def on_activate(self):
         """Module start-up"""
-            
         # Connect to PI controller.
         self.pidevice = pipython.GCSDevice('C-843')
         self.pidevice.ConnectPciBoard(board=self.port)
-        self.log.debug('connected: {}'.format(self.pidevice.qIDN().strip()))
-
-        STAGES = ['M-405.DG', 'M-451.1DG', 'M-405.DG', 'NOSTAGE']
-        REFMODES = ['FRF', 'FRF', 'FRF']
-
-        self.log.debug('qSAI_ALL: {}'.format(self.pidevice.qSAI_ALL()))
+        self.log.debug('Connected: {}'.format(self.pidevice.qIDN().strip()))
 
         # Set up axes. TODO: Should be config option.
         self.pidevice.CST('1', 'M-405.DG')
@@ -91,15 +83,7 @@ class PI_C843(Base,PositionerInterface):
         self.pidevice.SVO('1', 1)
         self.pidevice.SVO('2', 1)
         self.pidevice.SVO('3', 1)  
-        self.log.debug("QSVO: {}".format(self.pidevice.qSVO()))
 
-        # Set settle window and time
-        #self.pidevice.SPA(('1', '1'), (54, 63), ('1', '0.1'))
-        #self.pidevice.SPA(('2', '2'), (54, 63), ('1', '0.1'))
-        #self.pidevice.SPA(('3', '3'), (54, 63), ('1', '0.1'))
-
-        #self.log.debug(self.pidevice.qSPA(('1', '1'), (54, 63)))
-        
     def on_deactivate(self):
         """Module shutdown"""
         pass
@@ -113,6 +97,7 @@ class PI_C843(Base,PositionerInterface):
     def hw_info(self):
         return {'manufacturer':'PI', 'model':'C843'}
         
+    @check_axis
     def set_position(self, axis, position, relative=False):
         """
         Set position of specified axis.
@@ -123,8 +108,12 @@ class PI_C843(Base,PositionerInterface):
             else:
                 self.pidevice.MOV(self.axes[axis], position)
         except pipython.GCSError as err:
+            if err.val == 5:
+                raise PositionerNotReferenced(err)
+            else:
                 raise PositionerError(err)
 
+    @check_axis
     def get_position(self, axis):
         """
         Get position of specified axis.
@@ -135,11 +124,14 @@ class PI_C843(Base,PositionerInterface):
         except pipython.GCSError as err:
             raise PositionerError(err)
 
-    def reference_axis(self, axis):
+    def reference_axis(self, axis=None):
         """
-        Reference axis.
+        References axis. If no axis specified, reference all axes.
+
+        @param axis: str (optional) Axis to reference.
         """
-        if axis == 'all':
+        # pylint: disable=no-member
+        if axis is None:
             self.pidevice.FRF(list(self.axes.values()))
         elif axis in self.axes.keys():
             self.pidevice.FRF(self.axes[axis])
@@ -217,8 +209,6 @@ class PI_C843(Base,PositionerInterface):
             if option == 'velocity':
                 # Set axis velocity
                 self.pidevice.VEL(self.axes[axis], value)
-
-
 
     @check_axis
     def get_axis_limits(self, axis):

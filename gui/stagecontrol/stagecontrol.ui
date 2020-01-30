@@ -6,1082 +6,949 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>803</width>
-    <height>455</height>
+    <width>780</width>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Stage control</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="stop_btn">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>10</y>
-      <width>141</width>
-      <height>31</height>
-     </rect>
+  <property name="dockOptions">
+   <set>QMainWindow::AllowNestedDocks|QMainWindow::AnimatedDocks</set>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="stop_all_Action"/>
+   <addaction name="home_stage_Action"/>
+   <addaction name="show_settings_Action"/>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>780</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menufile">
+    <property name="title">
+     <string>File</string>
     </property>
-    <property name="text">
-     <string>Stop all movement</string>
-    </property>
+    <addaction name="actionClose"/>
    </widget>
-   <widget class="QTabWidget" name="tabWidget">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>50</y>
-      <width>761</width>
-      <height>371</height>
-     </rect>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
     </property>
-    <property name="currentIndex">
-     <number>0</number>
-    </property>
-    <widget class="QWidget" name="tab">
-     <attribute name="title">
-      <string>Positioning</string>
-     </attribute>
-     <widget class="QGroupBox" name="groupBox">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>281</width>
-        <height>211</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Jog</string>
-      </property>
-      <widget class="QGroupBox" name="groupBox_4">
-       <property name="geometry">
-        <rect>
-         <x>160</x>
-         <y>20</y>
-         <width>111</width>
-         <height>111</height>
-        </rect>
+    <addaction name="actionPositioning_view"/>
+    <addaction name="actionJog_view"/>
+    <addaction name="actionSaved_positions_view"/>
+    <addaction name="actionVelocity_view"/>
+   </widget>
+   <addaction name="menufile"/>
+   <addaction name="menuView"/>
+  </widget>
+  <widget class="QDockWidget" name="jog_dockWidget">
+   <property name="windowTitle">
+    <string>Jog</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_2">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="Joystick" name="xy_move_widget" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="title">
+          <string>Z-axis</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <widget class="QPushButton" name="z_up_btn">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../../artwork/icons/oxygen/22x22/go-up.png</normaloff>../../artwork/icons/oxygen/22x22/go-up.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QPushButton" name="z_down_btn">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../../artwork/icons/oxygen/22x22/go-down.png</normaloff>../../artwork/icons/oxygen/22x22/go-down.png</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QRadioButton" name="continuous">
+         <property name="text">
+          <string>Continuous</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="singlestep">
+         <property name="text">
+          <string>Single step</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
        </property>
-       <property name="title">
-        <string>Z-axis</string>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>7</height>
+        </size>
        </property>
-       <widget class="QWidget" name="gridLayoutWidget_2">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>40</y>
-          <width>91</width>
-          <height>66</height>
-         </rect>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <item row="0" column="0">
-          <widget class="QPushButton" name="z_up_btn">
-           <property name="text">
-            <string>Up</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="z_down_btn">
-           <property name="text">
-            <string>Down</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-      <widget class="QRadioButton" name="continuous">
-       <property name="geometry">
-        <rect>
-         <x>40</x>
-         <y>150</y>
-         <width>101</width>
-         <height>20</height>
-        </rect>
-       </property>
+      </spacer>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="positioning_DockWidget">
+   <property name="windowTitle">
+    <string>Positioning</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_3">
+    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,0,0,0,0,0,0">
+     <item row="1" column="2">
+      <widget class="QCheckBox" name="x_enable">
        <property name="text">
-        <string>Continuous</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">buttonGroup</string>
-       </attribute>
-      </widget>
-      <widget class="QRadioButton" name="singlestep">
-       <property name="geometry">
-        <rect>
-         <x>150</x>
-         <y>150</y>
-         <width>100</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Single step</string>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">buttonGroup</string>
-       </attribute>
-      </widget>
-      <widget class="Joystick" name="xy_move_widget" native="true">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>30</y>
-         <width>121</width>
-         <height>101</height>
-        </rect>
+        <string/>
        </property>
       </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_2">
-      <property name="geometry">
-       <rect>
-        <x>300</x>
-        <y>10</y>
-        <width>451</width>
-        <height>211</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Position</string>
-      </property>
-      <widget class="QLabel" name="label_3">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>90</y>
-         <width>16</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>y</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_2">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>50</y>
-         <width>60</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>x</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="goto_btn">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>170</y>
-         <width>111</width>
-         <height>32</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Go to (absolute)</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="x_pos_entry">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>50</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="y_pos_entry">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>90</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="rel_move_btn">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>170</y>
-         <width>113</width>
-         <height>32</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Move (relative)</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_8">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>130</y>
-         <width>16</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>z</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="z_pos_entry">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>130</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
-       </property>
-      </widget>
+     </item>
+     <item row="1" column="1">
       <widget class="QLabel" name="x_pos">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>50</y>
-         <width>71</width>
-         <height>16</height>
-        </rect>
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="text">
         <string>0</string>
        </property>
       </widget>
-      <widget class="QLabel" name="y_pos">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>90</y>
-         <width>71</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="z_pos">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>130</y>
-         <width>71</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_18">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Current</string>
-       </property>
-      </widget>
+     </item>
+     <item row="0" column="3">
       <widget class="QLabel" name="label_19">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
-       </property>
        <property name="text">
         <string>Target</string>
        </property>
       </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QLineEdit" name="z_pos_entry">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLineEdit" name="y_pos_entry">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QCheckBox" name="z_enable">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="5">
+      <widget class="QLabel" name="x_units_label">
+       <property name="text">
+        <string>mm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="4">
       <widget class="QLineEdit" name="x_pos_entry_2">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>50</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
        </property>
       </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QCheckBox" name="y_enable">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>Current</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="5">
+      <widget class="QLabel" name="y_units_label">
+       <property name="text">
+        <string>mm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
       <widget class="QLineEdit" name="z_pos_entry_2">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>130</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
        </property>
       </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>z</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="4">
+      <widget class="QPushButton" name="rel_move_btn">
+       <property name="text">
+        <string>Move (relative)</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../../artwork/icons/oxygen/22x22/go-next.png</normaloff>../../artwork/icons/oxygen/22x22/go-next.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="z_pos">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
       <widget class="QLineEdit" name="y_pos_entry_2">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>90</y>
-         <width>91</width>
-         <height>21</height>
-        </rect>
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
        </property>
       </widget>
-      <widget class="QLabel" name="label_6">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>50</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLineEdit" name="x_pos_entry">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="y_pos">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="text">
-        <string>µm</string>
+        <string>0</string>
        </property>
       </widget>
-      <widget class="QLabel" name="label_7">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>90</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
+     </item>
+     <item row="2" column="6">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
-       <property name="text">
-        <string>µm</string>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
-      </widget>
-      <widget class="QLabel" name="label_10">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>130</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>µm</string>
-       </property>
-      </widget>
+      </spacer>
+     </item>
+     <item row="0" column="4">
       <widget class="QLabel" name="label_20">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>30</y>
-         <width>81</width>
-         <height>16</height>
-        </rect>
-       </property>
        <property name="text">
         <string>Relative</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="home_x">
-       <property name="geometry">
-        <rect>
-         <x>360</x>
-         <y>50</y>
-         <width>81</width>
-         <height>21</height>
-        </rect>
-       </property>
+     </item>
+     <item row="3" column="5">
+      <widget class="QLabel" name="z_units_label">
        <property name="text">
-        <string>Home</string>
+        <string>mm</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="home_y">
-       <property name="geometry">
-        <rect>
-         <x>360</x>
-         <y>90</y>
-         <width>81</width>
-         <height>21</height>
-        </rect>
+     </item>
+     <item row="5" column="4">
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
        </property>
-       <property name="text">
-        <string>Home</string>
+       <property name="sizeType">
+        <enum>QSizePolicy::Expanding</enum>
        </property>
-      </widget>
-      <widget class="QPushButton" name="home_z">
-       <property name="geometry">
-        <rect>
-         <x>360</x>
-         <y>130</y>
-         <width>81</width>
-         <height>21</height>
-        </rect>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
        </property>
-       <property name="text">
-        <string>Home</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="home_all">
-       <property name="geometry">
-        <rect>
-         <x>360</x>
-         <y>170</y>
-         <width>81</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Home all</string>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="x_enable">
-       <property name="geometry">
-        <rect>
-         <x>90</x>
-         <y>50</y>
-         <width>21</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="y_enable">
-       <property name="geometry">
-        <rect>
-         <x>90</x>
-         <y>90</y>
-         <width>21</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="z_enable">
-       <property name="geometry">
-        <rect>
-         <x>90</x>
-         <y>130</y>
-         <width>21</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_5">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>230</y>
-        <width>281</width>
-        <height>101</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Velocity</string>
-      </property>
-      <widget class="QLineEdit" name="x_vel">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>50</y>
-         <width>61</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="y_vel">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>50</y>
-         <width>61</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="z_vel">
-       <property name="geometry">
-        <rect>
-         <x>150</x>
-         <y>50</y>
-         <width>61</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
-       </property>
+      </spacer>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
        <property name="text">
         <string>x</string>
        </property>
       </widget>
-      <widget class="QLabel" name="label_5">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
+     </item>
+     <item row="4" column="3">
+      <widget class="QPushButton" name="goto_btn">
+       <property name="text">
+        <string>Go to (absolute)</string>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_3">
        <property name="text">
         <string>y</string>
        </property>
       </widget>
-      <widget class="QLabel" name="label_9">
-       <property name="geometry">
-        <rect>
-         <x>150</x>
-         <y>30</y>
-         <width>47</width>
-         <height>13</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>z</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="set_vel_btn">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>60</y>
-         <width>51</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Set</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="get_vel_btn">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>30</y>
-         <width>51</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Get</string>
-       </property>
-      </widget>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="Saved_pos">
-     <attribute name="title">
-      <string>Saved positions</string>
-     </attribute>
-     <widget class="QTableWidget" name="position_TableWidget">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>20</y>
-        <width>591</width>
-        <height>311</height>
-       </rect>
-      </property>
-      <property name="alternatingRowColors">
-       <bool>false</bool>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
-      </property>
-      <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
-      </property>
-      <property name="showGrid">
-       <bool>true</bool>
-      </property>
-      <property name="gridStyle">
-       <enum>Qt::DotLine</enum>
-      </property>
-      <property name="cornerButtonEnabled">
-       <bool>true</bool>
-      </property>
-      <property name="rowCount">
-       <number>1</number>
-      </property>
-      <property name="columnCount">
-       <number>4</number>
-      </property>
-      <attribute name="horizontalHeaderVisible">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="horizontalHeaderCascadingSectionResizes">
-       <bool>true</bool>
-      </attribute>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-      <attribute name="verticalHeaderVisible">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="verticalHeaderShowSortIndicator" stdset="0">
-       <bool>false</bool>
-      </attribute>
-      <row/>
-      <column>
-       <property name="text">
-        <string>x</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>y</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>z</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Description</string>
-       </property>
-      </column>
-      <item row="0" column="0">
-       <property name="text">
-        <string>25.00000</string>
-       </property>
-      </item>
-      <item row="0" column="1">
-       <property name="text">
-        <string>6.25000</string>
-       </property>
-      </item>
-      <item row="0" column="2">
-       <property name="text">
-        <string>25.00000</string>
-       </property>
-      </item>
-      <item row="0" column="3">
-       <property name="text">
-        <string>Home</string>
-       </property>
-      </item>
-     </widget>
-     <widget class="QPushButton" name="add_item_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>20</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Add</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="delete_item_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>60</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Delete</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="goto_saved_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>100</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Go to</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="save_position_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>140</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Save current</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="savetofile_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>260</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Save to file</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="loadfromfile_pushButton">
-      <property name="geometry">
-       <rect>
-        <x>630</x>
-        <y>300</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Load from file</string>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_2">
-     <attribute name="title">
-      <string>Optimisation</string>
-     </attribute>
-     <widget class="QGroupBox" name="groupBox_3">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>331</width>
-        <height>321</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Z optimisation</string>
-      </property>
-      <widget class="PlotWidget" name="plot" native="true">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>140</y>
-         <width>291</width>
-         <height>161</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="optimisation_btn">
-       <property name="geometry">
-        <rect>
-         <x>190</x>
-         <y>70</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Start Optimisation</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_15">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>40</y>
-         <width>60</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Search ±</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="optimise_steps">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>40</y>
-         <width>51</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>10</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_16">
-       <property name="geometry">
-        <rect>
-         <x>140</x>
-         <y>40</y>
-         <width>31</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>steps</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="optimise_volts">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>40</y>
-         <width>51</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>19</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_17">
-       <property name="geometry">
-        <rect>
-         <x>260</x>
-         <y>40</y>
-         <width>31</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>volts</string>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="step_search">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>76</y>
-         <width>61</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Steps</string>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="volt_search">
-       <property name="geometry">
-        <rect>
-         <x>100</x>
-         <y>76</y>
-         <width>71</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Offset V</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_21">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>110</y>
-         <width>60</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Search ±</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="optimise_microns">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>110</y>
-         <width>51</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.01</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_22">
-       <property name="geometry">
-        <rect>
-         <x>140</x>
-         <y>110</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>µm</string>
-       </property>
-      </widget>
-      <widget class="QCheckBox" name="search_closedloop">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>110</y>
-         <width>111</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Closed Loop</string>
-       </property>
-      </widget>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_3">
-     <attribute name="title">
-      <string>Attocube config</string>
-     </attribute>
-     <widget class="QGroupBox" name="groupBox_7">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>10</y>
-        <width>351</width>
-        <height>191</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Attocube parameters</string>
-      </property>
-      <widget class="QWidget" name="gridLayoutWidget_5">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>331</width>
-         <height>137</height>
-        </rect>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_5">
-        <item row="3" column="0">
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>z</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>x</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="3">
-         <widget class="QPushButton" name="set_x_btn">
-          <property name="text">
-           <string>Set</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QLineEdit" name="z_voltage"/>
-        </item>
-        <item row="2" column="2">
-         <widget class="QLineEdit" name="y_voltage"/>
-        </item>
-        <item row="2" column="3">
-         <widget class="QPushButton" name="set_y_btn">
-          <property name="text">
-           <string>Set</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLineEdit" name="y_freq"/>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLineEdit" name="z_freq"/>
-        </item>
-        <item row="3" column="3">
-         <widget class="QPushButton" name="set_z_btn">
-          <property name="text">
-           <string>Set</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>y</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <widget class="QLineEdit" name="x_voltage"/>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="x_freq"/>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLabel" name="label_13">
-          <property name="text">
-           <string>Frequency (Hz)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QLabel" name="label_14">
-          <property name="text">
-           <string>Step amplitude (V)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <widget class="QPushButton" name="get_param_btn">
-          <property name="text">
-           <string>Get</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionAttocube">
+  <widget class="QDockWidget" name="saved_positions_dockWidget">
+   <property name="windowTitle">
+    <string>Saved positions</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_4">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QTableWidget" name="position_TableWidget">
+       <property name="minimumSize">
+        <size>
+         <width>450</width>
+         <height>150</height>
+        </size>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>false</bool>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
+       </property>
+       <property name="showGrid">
+        <bool>true</bool>
+       </property>
+       <property name="gridStyle">
+        <enum>Qt::DotLine</enum>
+       </property>
+       <property name="cornerButtonEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="rowCount">
+        <number>0</number>
+       </property>
+       <property name="columnCount">
+        <number>4</number>
+       </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>x</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>y</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>z</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Description</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QPushButton" name="add_item_pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Add</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../../artwork/icons/oxygen/22x22/list-add.png</normaloff>../../artwork/icons/oxygen/22x22/list-add.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="delete_item_pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Delete</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="goto_saved_pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Go to</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="loadfromfile_pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Load from file</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../../artwork/icons/oxygen/22x22/document-open.png</normaloff>../../artwork/icons/oxygen/22x22/document-open.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="savetofile_pushButton">
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Save to file</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../../artwork/icons/oxygen/22x22/document-save.png</normaloff>../../artwork/icons/oxygen/22x22/document-save.png</iconset>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="velocity_dockWidget">
+   <property name="windowTitle">
+    <string>Velocity</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_5">
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,1">
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <layout class="QGridLayout" name="gridLayout_4">
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>x</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>y</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="y_vel">
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>70</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>mm/sec</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLineEdit" name="x_vel">
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>70</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>z</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QLineEdit" name="z_vel">
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>70</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
+       <item>
+        <widget class="QPushButton" name="get_vel_btn">
+         <property name="minimumSize">
+          <size>
+           <width>70</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Get</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="set_vel_btn">
+         <property name="minimumSize">
+          <size>
+           <width>70</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Set</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_7">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Presets</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QPushButton" name="fast_preset_pushButton">
+            <property name="minimumSize">
+             <size>
+              <width>70</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Fast</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="med_preset_pushButton">
+            <property name="minimumSize">
+             <size>
+              <width>70</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Medium</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="slow_preset_pushButton">
+            <property name="minimumSize">
+             <size>
+              <width>70</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Slow</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>11</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="show_settings_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/configure.png</normaloff>../../artwork/icons/oxygen/22x22/configure.png</iconset>
+   </property>
    <property name="text">
-    <string>Attocube</string>
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="stop_all_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/process-stop.png</normaloff>../../artwork/icons/oxygen/22x22/process-stop.png</iconset>
+   </property>
+   <property name="text">
+    <string>Stop all motion</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop all motion (Esc)</string>
+   </property>
+   <property name="shortcut">
+    <string>Esc</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/application-exit.png</normaloff>../../artwork/icons/oxygen/22x22/application-exit.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionPositioning_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Positioning</string>
+   </property>
+  </action>
+  <action name="actionJog_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Jog</string>
+   </property>
+  </action>
+  <action name="actionSaved_positions_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Saved Positions</string>
+   </property>
+  </action>
+  <action name="actionVelocity_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Velocity</string>
+   </property>
+  </action>
+  <action name="home_stage_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/go-home.png</normaloff>../../artwork/icons/oxygen/22x22/go-home.png</iconset>
+   </property>
+   <property name="text">
+    <string>Home stage</string>
    </property>
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>PlotWidget</class>
-   <extends>QWidget</extends>
-   <header>pyqtgraph</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>Joystick</class>
    <extends>QWidget</extends>
@@ -1090,15 +957,181 @@
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>continuous</tabstop>
-  <tabstop>singlestep</tabstop>
-  <tabstop>stop_btn</tabstop>
+  <tabstop>x_enable</tabstop>
+  <tabstop>y_enable</tabstop>
+  <tabstop>z_enable</tabstop>
+  <tabstop>x_pos_entry</tabstop>
+  <tabstop>y_pos_entry</tabstop>
+  <tabstop>z_pos_entry</tabstop>
+  <tabstop>goto_btn</tabstop>
+  <tabstop>x_pos_entry_2</tabstop>
+  <tabstop>y_pos_entry_2</tabstop>
+  <tabstop>z_pos_entry_2</tabstop>
+  <tabstop>rel_move_btn</tabstop>
   <tabstop>z_up_btn</tabstop>
   <tabstop>z_down_btn</tabstop>
+  <tabstop>continuous</tabstop>
+  <tabstop>singlestep</tabstop>
+  <tabstop>position_TableWidget</tabstop>
+  <tabstop>add_item_pushButton</tabstop>
+  <tabstop>delete_item_pushButton</tabstop>
+  <tabstop>goto_saved_pushButton</tabstop>
+  <tabstop>loadfromfile_pushButton</tabstop>
+  <tabstop>savetofile_pushButton</tabstop>
+  <tabstop>x_vel</tabstop>
+  <tabstop>y_vel</tabstop>
+  <tabstop>z_vel</tabstop>
+  <tabstop>set_vel_btn</tabstop>
+  <tabstop>get_vel_btn</tabstop>
+  <tabstop>fast_preset_pushButton</tabstop>
+  <tabstop>med_preset_pushButton</tabstop>
+  <tabstop>slow_preset_pushButton</tabstop>
  </tabstops>
  <resources/>
- <connections/>
- <buttongroups>
-  <buttongroup name="buttonGroup"/>
- </buttongroups>
+ <connections>
+  <connection>
+   <sender>actionClose</sender>
+   <signal>triggered()</signal>
+   <receiver>StagecontrolWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>430</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaved_positions_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>saved_positions_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>233</x>
+     <y>356</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>saved_positions_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionSaved_positions_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>233</x>
+     <y>356</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVelocity_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>velocity_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>673</x>
+     <y>372</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>velocity_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionVelocity_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>673</x>
+     <y>372</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionJog_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>jog_dockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>673</x>
+     <y>173</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionPositioning_view</sender>
+   <signal>triggered(bool)</signal>
+   <receiver>positioning_DockWidget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>233</x>
+     <y>157</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>positioning_DockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionPositioning_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>233</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>jog_dockWidget</sender>
+   <signal>visibilityChanged(bool)</signal>
+   <receiver>actionJog_view</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>673</x>
+     <y>173</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

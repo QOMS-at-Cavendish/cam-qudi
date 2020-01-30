@@ -42,8 +42,6 @@ class XboxLogic(GenericLogic):
             connect:
                 hardware: dummy_joystick
     """
-    _modclass = 'xboxlogic'
-    _modtype = 'logic'
 
     # declare connectors
     hardware = Connector(interface='JoystickInterface')

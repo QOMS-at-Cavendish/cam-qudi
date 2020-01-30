@@ -74,15 +74,13 @@ class AttoCubeStepper(Base,PositionerInterface):
     Example config:
 
     attocube:
-        module.Class: 'attocube_usb.AttoCubeStepper'
+        module.Class: 'ANC300_serial.AttoCubeStepper'
         port: 'COM4'
         axes: {'x':1,'y':2,'z':3}
         step_voltage_range: {'x':[0,60], 'y':[0,60], 'z':[0,60]}
         frequency_range: {'x':[0,1000], 'y':[0,1000], 'z':[0,1000]}
     """
-
-    _modtype = 'AttoCubeStepper'
-    _modclass = 'hardware'
+    # pylint: disable=unsubscriptable-object
 
     port = ConfigOption('port', missing='error')
     vrange = ConfigOption('step_voltage_range', {})
@@ -99,6 +97,7 @@ class AttoCubeStepper(Base,PositionerInterface):
         default_vrange = [0,40]
         default_frange = [0,1000]
         
+        # pylint: disable=unsupported-membership-test, no-member, unsupported-assignment-operation
         for axis in self.axes.keys():
             if not axis in self.vrange:
                 self.log.warn("No step voltage range given for axis {}. Using default {}.".format(axis,default_vrange))
@@ -351,6 +350,7 @@ class AttoCubeStepper(Base,PositionerInterface):
     def stop_all(self):
         """Stops motion on all axes
         """
+        # pylint: disable=no-member
         for axis in self.axes.items():
             cmd = "stop {}".format(axis[1])
             self.connection.send_cmd(cmd)

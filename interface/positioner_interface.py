@@ -61,9 +61,6 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
     """ Interface to positioner hardware.
     """
 
-    _modtype = 'PositionerInterface'
-    _modclass = 'interface'
-
     @abstract_interface_method
     def get_axes(self):
         """
@@ -87,8 +84,9 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
     @abstract_interface_method
     def move_steps(self, axis, steps=1):
         """ 
-        Move a specified number of steps
-        Generally, this will be for open-loop movements.
+        Moves a specified number of steps
+        This will execute a movement that corresponds to the smallest
+        possible stage motion.
 
         @param str axis: Axis to move
         @param int steps: Number of steps to move (sign indicates direction)
@@ -110,7 +108,7 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
     def set_position(self, axis, position, relative=False):
         """ 
         Move to specified position.
-        Generally, this will be for closed-loop movements.
+        Only available for closed-loop movements.
         
         @param str axis: Axis to move
         @param float position: Position in meters
@@ -176,7 +174,7 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
         'offset_voltage': Offset voltage (float)
         'mode': Axis mode (string, e.g. 'stp', 'gnd', 'cap' for attocube)
 
-        Raise AxisConfigError if the configuration option is not implemented.
+        Ignore unimplemented configuration options.
         """
         pass
 
@@ -211,6 +209,10 @@ class PositionerInterface(metaclass=InterfaceMetaclass):
         'step_voltage'
         'frequency'
         'position'
+        'velocity'
+
+        If a limit is not known or implemented for a particular stage, its key
+        will not appear in the returned dict.
         """
         pass
 

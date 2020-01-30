@@ -58,6 +58,12 @@ class PositionerDummy(Base,PositionerInterface):
         }
 
         self.axes = ['x','y','z']
+
+        self.velocity = {
+            'x':0,
+            'y':0,
+            'z':0
+        }
         
     def on_deactivate(self):
         """Module shutdown"""
@@ -127,7 +133,10 @@ class PositionerDummy(Base,PositionerInterface):
         @return: Specified config_option value.
         @return dict: All config_option values (if no config_option specified)
         """
-        raise AxisConfigError('Config option {} unsupported'.format(config_option))
+        if config_option == 'velocity':
+            return self.velocity[axis]
+        else:
+            raise AxisConfigError('Config option {} unsupported'.format(config_option))
 
     @check_axis
     def set_axis_config(self, axis, **config):
@@ -136,7 +145,9 @@ class PositionerDummy(Base,PositionerInterface):
         @param str axis: Axis to set
         @kwargs: Name-value pairs for configuration to set
         """
-        pass
+        for option, value in config.items():
+            if option == 'velocity':
+                self.velocity[axis] = value
 
     @check_axis
     def get_axis_limits(self, axis):

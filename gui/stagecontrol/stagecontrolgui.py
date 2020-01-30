@@ -57,9 +57,18 @@ class StagecontrolMainWindow(QtWidgets.QMainWindow):
         ui_file = os.path.join(this_dir, 'stagecontrol.ui')
 
         # Load it
-        super(StagecontrolMainWindow, self).__init__()
+        super().__init__()
         uic.loadUi(ui_file, self)
         self.show()
+
+class StageSettingsDialog(QtWidgets.QDialog):
+    """ Dialog for getting settings """
+
+    def __init__(self):
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_settingsdialog.ui')
+        super().__init__()
+        uic.loadUi(ui_file, self)
 
 class StagecontrolGui(GUIBase):
 
@@ -81,36 +90,33 @@ class StagecontrolGui(GUIBase):
         # Create main window instance
         self._mw = StagecontrolMainWindow()
 
+        # Settings dialog
+        self._sd = StageSettingsDialog()
+
+        # Hide central widget (so entire interface is dockwidgets)
+        self._mw.centralwidget.hide()
+
         # Ensure table headers visible
         self._mw.position_TableWidget.horizontalHeader().setVisible(True)
         self._mw.position_TableWidget.verticalHeader().setVisible(True)
 
-        # Set up counts vs z plot
-        self._mw.plot.setLabel('left', 'Counts', units='cps')
-        self._mw.plot.setLabel('bottom', 'Z position', units='steps')
-        self.plotdata = pg.PlotDataItem(pen=pg.mkPen(palette.c1, width=4))
-        self._mw.plot.addItem(self.plotdata)
-
-        # Flag to keep track of optimisation state
-        self.sweep_run = False
-
-        # Connect events from z-optimisation routines
-        self.stagecontrol_logic.sigCountDataUpdated.connect(self.update_plot)
-        self.stagecontrol_logic.sigOptimisationDone.connect(self.optimisation_done)
+        # Connect events from logic
         self.stagecontrol_logic.sigPositionUpdated.connect(self.update_position)
+        self.stagecontrol_logic.sigVelocityUpdated.connect(self.update_velocity)
         self.stagecontrol_logic.sigHitTarget.connect(self.hit_target)
-
-        # Show or hide attocube tab depending on reported hardware
-        if self.stagecontrol_logic.get_hw_manufacturer() != 'Attocube':
-            # Remove attocube tab
-            self._mw.tabWidget.removeTab(3)
 
         ###################
         # Connect UI events
         ###################
 
+        # Show settings
+        self._mw.show_settings_Action.triggered.connect(self.show_settings)
+
+        # Accept settings dialog
+        self._sd.accepted.connect(self.update_settings)
+
         # Direction jog buttons
-        self._mw.stop_btn.clicked.connect(self.stop_movement)
+        self._mw.stop_all_Action.triggered.connect(self.stop_movement)
 
         self._mw.xy_move_widget.moved.connect(self.xy_moved)
         self.direction = (0, 0)
@@ -121,23 +127,18 @@ class StagecontrolGui(GUIBase):
         self._mw.z_up_btn.released.connect(self.z_released)
         self._mw.z_down_btn.released.connect(self.z_released)
 
-        # Parameter get/set buttons
-        self._mw.set_x_btn.clicked.connect(self.set_x_params)
-        self._mw.set_y_btn.clicked.connect(self.set_y_params)
-        self._mw.set_z_btn.clicked.connect(self.set_z_params)
-        self._mw.get_param_btn.clicked.connect(self.update_params)
-
+        # Velocity buttons
         self._mw.get_vel_btn.clicked.connect(self.get_velocities)
         self._mw.set_vel_btn.clicked.connect(self.set_velocities)
-
-        # Optimisation start/stop button
-        self._mw.optimisation_btn.clicked.connect(self.optimise_btn_clicked)
+        self._mw.slow_preset_pushButton.clicked.connect(
+            lambda: self.stagecontrol_logic.set_velocity_to_preset('slow'))
+        self._mw.med_preset_pushButton.clicked.connect(
+            lambda: self.stagecontrol_logic.set_velocity_to_preset('medium'))
+        self._mw.fast_preset_pushButton.clicked.connect(
+            lambda: self.stagecontrol_logic.set_velocity_to_preset('fast'))
 
         # Home buttons
-        self._mw.home_x.clicked.connect(self.home_x)
-        self._mw.home_y.clicked.connect(self.home_y)
-        self._mw.home_z.clicked.connect(self.home_z)
-        self._mw.home_all.clicked.connect(self.home_all)
+        self._mw.home_stage_Action.triggered.connect(self.home_all)
 
         # Move buttons
         self._mw.goto_btn.clicked.connect(self.goto_position)
@@ -149,9 +150,8 @@ class StagecontrolGui(GUIBase):
         self._mw.z_pos_entry.textChanged.connect(self.z_changed)
 
         # Position saving buttons
-        self._mw.add_item_pushButton.clicked.connect(self.add_position)
+        self._mw.add_item_pushButton.clicked.connect(self.save_position)
         self._mw.delete_item_pushButton.clicked.connect(self.delete_position)
-        self._mw.save_position_pushButton.clicked.connect(self.save_position)
         self._mw.goto_saved_pushButton.clicked.connect(self.goto_saved_position)
         self._mw.savetofile_pushButton.clicked.connect(self.save_positions_to_file)
         self._mw.loadfromfile_pushButton.clicked.connect(self.load_positions_from_file)
@@ -164,17 +164,26 @@ class StagecontrolGui(GUIBase):
         self._mw.raise_()
 
     def on_deactivate(self):
-        # FIXME: !
         """ Deactivate the module
         """
         self._mw.close()
 
-    #Button callbacks
+    ########################
+    # Slots for jog controls
+    ########################
+
+    @QtCore.Slot()
     def stop_movement(self):
-        """Stop button callback"""
+        """ Stop button pressed"""
         self.stagecontrol_logic.stop()
 
+    @QtCore.Slot(tuple)
     def xy_moved(self, direction):
+        """ XY joystick moved on panel.
+
+        Handles deciding which direction to move the stage based on joystick
+        input from GUI.
+        """
         angle, magnitude = direction
         
         new_direction = (0, 0)
@@ -256,6 +265,7 @@ class StagecontrolGui(GUIBase):
         else:
             self.stagecontrol_logic.step('y', -1)
 
+    @QtCore.Slot()
     def z_up(self):
         """Direction button callback"""
         if self._mw.continuous.isChecked():
@@ -263,6 +273,7 @@ class StagecontrolGui(GUIBase):
         else:
             self.stagecontrol_logic.step('z', 1)
 
+    @QtCore.Slot()
     def z_down(self):
         """Direction button callback"""
         if self._mw.continuous.isChecked():
@@ -270,83 +281,19 @@ class StagecontrolGui(GUIBase):
         else:
             self.stagecontrol_logic.step('z', -1)
 
+    @QtCore.Slot()
     def z_released(self):
         """Z button release callback"""
         self.stagecontrol_logic.stop_axis('z')
 
-    @value_error_handler
-    def set_x_params(self,msg):
-        freq = float(self._mw.x_freq.text())
-        volt = float(self._mw.x_voltage.text())
-        self.stagecontrol_logic.set_axis_params('x', volt, freq)
+    #############################
+    # Slots for positioning panel
+    #############################
 
-    @value_error_handler
-    def set_y_params(self,msg):
-        freq = float(self._mw.y_freq.text())
-        volt = float(self._mw.y_voltage.text())
-        self.stagecontrol_logic.set_axis_params('y', volt, freq)
-
-    @value_error_handler
-    def set_z_params(self,msg):
-        freq = float(self._mw.z_freq.text())
-        volt = float(self._mw.z_voltage.text())
-        self.stagecontrol_logic.set_axis_params('z', volt, freq)
-
-    @value_error_handler
-    def optimise_btn_clicked(self,msg):
-        if self.sweep_run == False:
-            if self._mw.search_closedloop.isChecked():
-                microns = abs(float(self._mw.optimise_microns.text()))
-                self.stagecontrol_logic.optimise_microns(microns)
-            if self._mw.step_search.isChecked():
-                steps = abs(int(self._mw.optimise_steps.text()))
-            else:
-                steps = 0
-
-            if self._mw.volt_search.isChecked():
-                volts = abs(int(self._mw.optimise_volts.text()))
-            else:
-                volts = 0
-
-            self.stagecontrol_logic.optimise_z(steps, volts)
-            self.sweep_run = True
-            self._mw.optimisation_btn.setText("Stop optimisation")
-        else:
-            self.stagecontrol_logic.abort_optimisation()
-            self.sweep_run = False
-            self._mw.optimisation_btn.setText("Start optimisation")
-
-    def home_x(self):
-        check = QtWidgets.QMessageBox.question(
-            self._mw,
-            'Confirm home', 
-            "This will move the x-axis stage to the home position. Continue?", 
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
-            QtWidgets.QMessageBox.No)
-        if check == QtWidgets.QMessageBox.Yes:
-            self.stagecontrol_logic.home_axis('x')
-
-    def home_y(self):
-        check = QtWidgets.QMessageBox.question(
-            self._mw,
-            'Confirm home', 
-            "This will move the y-axis stage to the home position. Continue?", 
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
-            QtWidgets.QMessageBox.No)
-        if check == QtWidgets.QMessageBox.Yes:
-            self.stagecontrol_logic.home_axis('y')
-
-    def home_z(self):
-        check = QtWidgets.QMessageBox.question(
-            self._mw,
-            'Confirm home', 
-            "This will move the z-axis stage to the home position. Continue?", 
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
-            QtWidgets.QMessageBox.No)
-        if check == QtWidgets.QMessageBox.Yes:
-            self.stagecontrol_logic.home_axis('z')
-
+    @QtCore.Slot()
     def home_all(self):
+        """ Homes all axes after displaying confirmation messagebox.
+        """
         check = QtWidgets.QMessageBox.question(
             self._mw,
             'Confirm home', 
@@ -356,51 +303,25 @@ class StagecontrolGui(GUIBase):
         if check == QtWidgets.QMessageBox.Yes:
             self.stagecontrol_logic.home_axis()
 
-    def update_position(self, pos_dict):
-        try:
-            if 'x' in pos_dict.keys():
-                self._mw.x_pos.setText("{:2.5f}".format(pos_dict['x']))
-            else:
-                self._mw.x_pos.setText("--")
-            if 'y' in pos_dict.keys():
-                self._mw.y_pos.setText("{:2.5f}".format(pos_dict['y']))
-            else:
-                self._mw.y_pos.setText("--")
-            if 'z' in pos_dict.keys():
-                self._mw.z_pos.setText("{:2.5f}".format(pos_dict['z']))
-            else:
-                self._mw.z_pos.setText("--")
-                
-        except KeyError as err:
-            self.log.warn('Could not update all positions. {}'.format(err))
-        except ValueError:
-            self._mw.x_pos.setText('')
-            self._mw.y_pos.setText('')
-            self._mw.z_pos.setText('')
-
-    def hit_target(self):
-        """ Stage hit target """
-        # Disable all positioning enable checkboxes
-        self._mw.x_enable.setChecked(False)
-        self._mw.y_enable.setChecked(False)
-        self._mw.z_enable.setChecked(False)
-
+    @QtCore.Slot(str)
     def x_changed(self, text):
         """ On text changed in x position box """
         self._mw.x_enable.setChecked(text != '')
 
+    @QtCore.Slot(str)
     def y_changed(self, text):
         """ On text changed in y position box """
         self._mw.y_enable.setChecked(text != '')
     
+    @QtCore.Slot(str)
     def z_changed(self, text):
         """ On text changed in z position box """
         self._mw.z_enable.setChecked(text != '')
 
     @value_error_handler
-    def goto_position(self, msg):
-        """
-        Goto absolute position
+    @QtCore.Slot()
+    def goto_position(self):
+        """ Moves to absolute position
         """
         x_pos = ''
         y_pos = ''
@@ -430,9 +351,9 @@ class StagecontrolGui(GUIBase):
         self.stagecontrol_logic.move_abs(move_dict)
 
     @value_error_handler
-    def goto_position_rel(self, msg):
-        """
-        Goto relative position
+    @QtCore.Slot()
+    def goto_position_rel(self):
+        """ Moves to relative position
         """
         # Get position from UI
         x_pos = self._mw.x_pos_entry_2.text()
@@ -452,71 +373,96 @@ class StagecontrolGui(GUIBase):
 
         self.stagecontrol_logic.move_rel(move_dict)
 
-    def update_params(self,msg):
-        """Get parameters from stepper & update GUI"""
+    # Slots for logic signals
+
+    @QtCore.Slot(dict)
+    def update_position(self, pos_dict):
+        """ Updates position in GUI when signalled by logic. """
         try:
-            volt, freq = self.stagecontrol_logic.get_axis_params('x')
-            self._mw.x_freq.setText(freq)
-            self._mw.x_voltage.setText(volt)
+            if 'x' in pos_dict.keys():
+                self._mw.x_pos.setText("{:7.5f}".format(pos_dict['x']))
+            else:
+                self._mw.x_pos.setText("--")
+            if 'y' in pos_dict.keys():
+                self._mw.y_pos.setText("{:7.5f}".format(pos_dict['y']))
+            else:
+                self._mw.y_pos.setText("--")
+            if 'z' in pos_dict.keys():
+                self._mw.z_pos.setText("{:7.5f}".format(pos_dict['z']))
+            else:
+                self._mw.z_pos.setText("--")
+                
+        except KeyError as err:
+            self.log.warn('Could not update all positions. {}'.format(err))
+        except ValueError:
+            self._mw.x_pos.setText('')
+            self._mw.y_pos.setText('')
+            self._mw.z_pos.setText('')
 
-            volt, freq = self.stagecontrol_logic.get_axis_params('y')
-            self._mw.y_freq.setText(freq)
-            self._mw.y_voltage.setText(volt)
+    @QtCore.Slot()
+    def hit_target(self):
+        """ Updates GUI when stage hits target """
+        # Disable all positioning enable checkboxes
+        self._mw.x_enable.setChecked(False)
+        self._mw.y_enable.setChecked(False)
+        self._mw.z_enable.setChecked(False)
 
-            volt, freq = self.stagecontrol_logic.get_axis_params('z')
-            self._mw.z_freq.setText(freq)
-            self._mw.z_voltage.setText(volt)
-        except TypeError:
-            # TypeError can happen if there's a hw error
-            # such that get_axis_params returns None.
-            self.log.error('Unable to update axis parameters')
-
-    def update_plot(self):
-        counts = self.stagecontrol_logic.sweep_counts
-        sweep_len = self.stagecontrol_logic.sweep_length
-        steps = np.arange(-sweep_len,len(counts)-sweep_len)
-        self.plotdata.setData(steps, counts)
-
-    def optimisation_done(self):
-        self._mw.optimisation_btn.setText("Start optimisation")
-        self.sweep_run = False
-
-    def get_velocities(self):
-        velocity_dict = self.stagecontrol_logic.get_velocities()
-        self._mw.x_vel.setText(str(velocity_dict['x']))
-        self._mw.y_vel.setText(str(velocity_dict['y']))
-        self._mw.z_vel.setText(str(velocity_dict['z']))
+    ##########################
+    # Slots for velocity panel
+    ##########################
 
     @value_error_handler
-    def set_velocities(self, msg):
-        # Get velocities from UI
+    @QtCore.Slot()
+    def set_velocities(self):
+        """ Sets velocity according to values in text boxes"""
         x_vel = self._mw.x_vel.text()
         y_vel = self._mw.y_vel.text()
         z_vel = self._mw.z_vel.text()
 
-        # Construct velocity_dict
-        velocity_dict = {}
         if x_vel != '':
-            velocity_dict['x'] = float(x_vel)
+            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
 
         if y_vel != '':
-            velocity_dict['y'] = float(y_vel)
+            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
 
         if z_vel != '':
-            velocity_dict['z'] = float(z_vel)
+            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
 
-        self.stagecontrol_logic.set_velocities(velocity_dict)
+    @QtCore.Slot()
+    def get_velocities(self):
+        """ Gets velocities from hardware and displays in boxes"""
+        self._mw.x_vel.setText(
+            str(self.stagecontrol_logic.get_axis_config('x', 'velocity')))
+        self._mw.y_vel.setText(
+            str(self.stagecontrol_logic.get_axis_config('y', 'velocity')))
+        self._mw.z_vel.setText(
+            str(self.stagecontrol_logic.get_axis_config('z', 'velocity')))
 
-    def add_position(self):
-        row_count = self._mw.position_TableWidget.rowCount()
-        self._mw.position_TableWidget.setRowCount(row_count + 1)
+    @QtCore.Slot(dict)
+    def update_velocity(self, velocity_dict):
+        """ Updates velocity boxes when signalled by the logic. """
+        for axis, velocity in velocity_dict.items():
+            if axis == 'x':
+                self._mw.x_vel.setText('{}'.format(velocity))
+            elif axis == 'y':
+                self._mw.y_vel.setText('{}'.format(velocity))
+            elif axis == 'z':
+                self._mw.z_vel.setText('{}'.format(velocity))
 
+    ###########################
+    # Slots for saved positions
+    ###########################
+
+    @QtCore.Slot()
     def delete_position(self):
+        """ Deletes row from saved positions TableWidget """
         row = self._mw.position_TableWidget.currentRow()
         if row is not None:
             self._mw.position_TableWidget.removeRow(row)
 
+    @QtCore.Slot()
     def goto_saved_position(self):
+        """ Starts move to selected position in TableWidget """
         row = self._mw.position_TableWidget.currentRow()
         x = self._mw.position_TableWidget.item(row, 0)
         y = self._mw.position_TableWidget.item(row, 1)
@@ -535,20 +481,22 @@ class StagecontrolGui(GUIBase):
 
         self.stagecontrol_logic.move_abs(move_dict)
 
-
+    @QtCore.Slot()
     def save_position(self):
+        """ Saves current position to TableWidget """
         row_count = self._mw.position_TableWidget.rowCount()
         self._mw.position_TableWidget.setRowCount(row_count + 1)
         x_item = QtWidgets.QTableWidgetItem(self._mw.x_pos.text())
         y_item = QtWidgets.QTableWidgetItem(self._mw.y_pos.text())
         z_item = QtWidgets.QTableWidgetItem(self._mw.z_pos.text())
-        self.log.debug(x_item.text())
+
         self._mw.position_TableWidget.setItem(row_count, 0, x_item)
         self._mw.position_TableWidget.setItem(row_count, 1, y_item)
         self._mw.position_TableWidget.setItem(row_count, 2, z_item)
 
+    @QtCore.Slot()
     def save_positions_to_file(self):
-        """Save position list to file"""
+        """ Saves position list to file """
         filename = QtWidgets.QFileDialog.getSaveFileName(self._mw, "Save position list", filter='*.csv')
 
         if filename[0] == '':
@@ -589,8 +537,9 @@ class StagecontrolGui(GUIBase):
 
         df.to_csv(filename[0])
             
+    @QtCore.Slot()
     def load_positions_from_file(self):
-        """Load position list from file"""
+        """ Loads position list from file """
         filename = QtWidgets.QFileDialog.getOpenFileName(self._mw, "Load position list", filter='*.csv')
 
         if filename[0] == '':
@@ -605,12 +554,57 @@ class StagecontrolGui(GUIBase):
         self._mw.position_TableWidget.setRowCount(len(data.index) + current_row_count)
 
         for index, row in data.iterrows():
-            x_item = QtWidgets.QTableWidgetItem(str(row['x']))
-            y_item = QtWidgets.QTableWidgetItem(str(row['y']))
-            z_item = QtWidgets.QTableWidgetItem(str(row['z']))
+            x_item = QtWidgets.QTableWidgetItem('{:.5f}'.format(row['x']))
+            y_item = QtWidgets.QTableWidgetItem('{:.5f}'.format(row['y']))
+            z_item = QtWidgets.QTableWidgetItem('{:.5f}'.format(row['z']))
             description_item = QtWidgets.QTableWidgetItem(str(row['description']))
 
             self._mw.position_TableWidget.setItem(index + current_row_count, 0, x_item)
             self._mw.position_TableWidget.setItem(index + current_row_count, 1, y_item)
             self._mw.position_TableWidget.setItem(index + current_row_count, 2, z_item)
             self._mw.position_TableWidget.setItem(index + current_row_count, 3, description_item)
+
+    ###########################
+    # Slots for settings dialog
+    ###########################
+
+    @QtCore.Slot()
+    def show_settings(self):
+        """ Shows settings dialog with latest values from logic """
+        preset = self.stagecontrol_logic.preset_velocities
+        self._sd.x_slow_preset_lineEdit.setText(str(preset['slow']['x']))
+        self._sd.y_slow_preset_lineEdit.setText(str(preset['slow']['y']))
+        self._sd.z_slow_preset_lineEdit.setText(str(preset['slow']['z']))
+
+        self._sd.x_med_preset_lineEdit.setText(str(preset['medium']['x']))
+        self._sd.y_med_preset_lineEdit.setText(str(preset['medium']['y']))
+        self._sd.z_med_preset_lineEdit.setText(str(preset['medium']['z']))
+
+        self._sd.x_fast_preset_lineEdit.setText(str(preset['fast']['x']))
+        self._sd.y_fast_preset_lineEdit.setText(str(preset['fast']['y']))
+        self._sd.z_fast_preset_lineEdit.setText(str(preset['fast']['z']))
+
+        self._sd.exec()
+        
+    @value_error_handler
+    @QtCore.Slot()
+    def update_settings(self):
+        """ Updates logic with settings from dialog """
+        slow = (
+            float(self._sd.x_slow_preset_lineEdit.text()),
+            float(self._sd.y_slow_preset_lineEdit.text()),
+            float(self._sd.z_slow_preset_lineEdit.text()))
+
+        medium = (
+            float(self._sd.x_med_preset_lineEdit.text()),
+            float(self._sd.y_med_preset_lineEdit.text()),
+            float(self._sd.z_med_preset_lineEdit.text()))
+        
+
+        fast = (
+            float(self._sd.x_fast_preset_lineEdit.text()),
+            float(self._sd.y_fast_preset_lineEdit.text()),
+            float(self._sd.z_fast_preset_lineEdit.text()))
+
+        self.stagecontrol_logic.set_preset_values(slow=slow, medium=medium, fast=fast)
+        

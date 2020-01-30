@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Stage controller
+Stage control logic for hardware implementing PositionerInterface.
+
+John Jarman jcj27@cam.ac.uk
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,45 +26,27 @@ from collections import OrderedDict
 from core.connector import Connector
 from qtpy import QtCore
 from core.configoption import ConfigOption
+from core.statusvariable import StatusVar
 
 from core.util.mutex import Mutex
 
-from interface.positioner_interface import PositionerError, PositionerOutOfRange, PositionerNotReferenced, AxisError, AxisConfigError
+from interface.positioner_interface import PositionerError, \
+    PositionerOutOfRange, PositionerNotReferenced, AxisError, AxisConfigError
 
 import numpy as np
 import functools
 
-# Decorator to ensure thread locking is done correctly
-def thread_lock(func):
-    @functools.wraps(func)
-    def check(self,*args,**kwargs):
-        with self.threadlock:
-            return func(self,*args,**kwargs)
-    return check
-
-# Decorator to throw away exceptions from hardware for non-critical operations
-def hwerror_handler(func):
-    @functools.wraps(func)
-    def check(self,*args,**kwargs):
-        try:
-            return func(self,*args,**kwargs)
-        except PositionerError as err:
-            self.log.error(err)
-    return check
-
 class StagecontrolLogic(GenericLogic):
-    """ Logic module for moving Attocube.
+    """ Logic module for moving stage hardware with GUI and gamepad.
     """
 
     stagehardware = Connector(interface='PositionerInterface')
-    counterlogic = Connector(interface='CounterLogic')
     xboxlogic = Connector(interface='XboxLogic')
 
     # Signals to trigger GUI updates
-    sigOptimisationDone = QtCore.Signal()
-    sigCountDataUpdated = QtCore.Signal()
     sigPositionUpdated = QtCore.Signal(dict)
     sigHitTarget = QtCore.Signal()
+    sigVelocityUpdated = QtCore.Signal(dict)
 
     # Signals to trigger stage moves
     sigStartJog = QtCore.Signal(tuple)
@@ -71,6 +55,16 @@ class StagecontrolLogic(GenericLogic):
 
     # Config option to invert axes for jog operations
     invert_axes = ConfigOption('jog_invert_axes', [])
+    
+    # Set polling interval for stage position (ms)
+    poll_interval = ConfigOption('poll_interval', 500)
+
+    preset_velocities = StatusVar(
+            default={
+                'slow': {'x':0.01, 'y':0.01, 'z':0.005},
+                'medium': {'x':0.05, 'y':0.05, 'z':0.005},
+                'fast': {'x':0.5, 'y':0.5, 'z':0.5}
+            })
 
     def __init__(self, config, **kwargs):
         """ Create logic object
@@ -86,7 +80,6 @@ class StagecontrolLogic(GenericLogic):
         """ Prepare logic module for work.
         """
         self.stage_hw = self.stagehardware()
-        self.counter_logic = self.counterlogic()
         self.xbox_logic = self.xboxlogic()
 
         self.xbox_logic.sigButtonPress.connect(self.xbox_button_press)
@@ -106,15 +99,6 @@ class StagecontrolLogic(GenericLogic):
         self.y_joystick_jog_running = 0
         self.z_joystick_jog_running = 0
 
-        # Delay used between requesting stepper motion and requesting count-rate while optimising z-axis.
-        # TODO: Make this a configuration option.
-        self.optimise_delay = 100
-        self.cl_optimise_delay = 200
-        self.abort = False
-
-        # Delay used for polling stage position
-        # TODO: Make this a config option
-        self.poll_interval = 500
         self.start_poll()
         
     def on_deactivate(self):
@@ -122,250 +106,222 @@ class StagecontrolLogic(GenericLogic):
         """
         pass
 
-    def start_jog(self, axis, direction):
-        """Start stage movement in specified direction.
-        Uses a signal to actually start movement, so this can be 
-        safely called from the GUI thread without blocking the GUI.
+    #######################
+    # Stage control methods
+    #######################
+    
+    def get_hw_manufacturer(self):
+        """ Gets hardware info from stage hardware """
+        return self.stage_hw.hw_info()
+
+    def move_abs(self, move_dict):
+        """ Moves stage to an absolute position.
+
+        @param move_dict: dict of positions, with axis names as keys and 
+            axis target positions as items. If an axis is not specified, it
+            remains at its current position.
         """
         self.on_target = False
+        if 'x' in move_dict.keys():
+            self.stage_hw.set_position('x', move_dict['x'])
+        if 'y' in move_dict.keys():
+            self.stage_hw.set_position('y', move_dict['y'])
+        if 'z' in move_dict.keys():
+            self.stage_hw.set_position('z', move_dict['z'])
+
+    def move_rel(self, move_dict):
+        """ Moves stage to a relative position.
+
+        @param move_dict: dict of positions, with axis names as keys and 
+            axis move distances as items. If an axis is not specified, it
+            remains at its current position.
+        """
+        self.on_target = False
+        if 'x' in move_dict.keys():
+            self.stage_hw.set_position('x', move_dict['x'], True)
+        if 'y' in move_dict.keys():
+            self.stage_hw.set_position('y', move_dict['y'], True)
+        if 'z' in move_dict.keys():
+            self.stage_hw.set_position('z', move_dict['z'], True)
+
+    def is_moving(self):
+        """ Returns True if any axis is currently moving.
+        """
+        if (self.stage_hw.get_axis_status('x', 'on_target') and
+                self.stage_hw.get_axis_status('y', 'on_target') and
+                self.stage_hw.get_axis_status('z', 'on_target')):
+            return False
+        else:
+            return True
+
+    def start_jog(self, axis, direction):
+        """ Start stage movement on axis in specified direction.
+
+        @param axis: str, move along this axis
+        @param direction: bool, move in forward direction if True, backward if false.
+        """
+        self.on_target = False
+        # pylint: disable=unsupported-membership-test
         if axis in self.invert_axes:
             direction = not direction
 
         self.sigStartJog.emit((axis, direction))
         
     def step(self, axis, steps):
-        """Step stage in specified direction.
-        Uses a signal to actually start movement, so this can be 
-        safely called from the GUI thread without blocking the GUI.
+        """ Steps stage in specified direction.
+        
+        @param axis str: axis to move.
         """
         self.on_target = False
+        # pylint: disable=unsupported-membership-test
         if axis in self.invert_axes:
             steps = -steps
         self.sigStartStep.emit((axis, steps))
 
     def stop_axis(self, axis):
-        """Stop specified axis.
-        Uses a signal to actually start movement, so this can be 
-        safely called from the GUI thread without blocking the GUI.
+        """ Stops specified axis.
+        
+        @param axis str: axis to stop.
         """
         self.sigStopAxis.emit(axis)
 
-    @hwerror_handler
-    def _do_jog(self, param_list):
-        """Internal method to start jog. Connected to sigStartJog"""
-        # Zero offset voltage
-        self.stage_hw.set_axis_config(param_list[0], offset_voltage=0)
-
-        # Do stage move
-        self.stage_hw.start_continuous_motion(*param_list)
-
-    @hwerror_handler
-    def _do_step(self, param_list):
-        """Internal method to start jog. Connected to sigStartStep"""
-        # Zero offset voltage
-        self.stage_hw.set_axis_config(param_list[0], offset_voltage=0)
-
-        # Do stage move
-        self.stage_hw.move_steps(*param_list)
-    
-    @hwerror_handler
-    def _stop_axis(self, axis):
-        """Internal method to stop axis. Connected to sigStopAxis"""
-        self.stage_hw.stop_axis(axis)
-        self.stage_hw.set_axis_config(axis, offset_voltage=0)
-    
-
-    @hwerror_handler
     def stop(self):
+        """ Stops all axes immediatey. """
         self.stage_hw.stop_all()
 
-    @hwerror_handler
-    def set_axis_params(self,axis,volt,freq):
-        self.stage_hw.set_axis_config(axis, step_voltage=volt, frequency=freq)
-
-    @hwerror_handler
-    def get_axis_params(self,axis):
-        volt = self.stage_hw.get_axis_config(axis, 'step_voltage')
-        freq = self.stage_hw.get_axis_config(axis, 'frequency')
-        return volt, freq
-
-    @hwerror_handler
-    def get_velocities(self):
-        velocity_dict = {}
-        velocity_dict['x'] = self.stage_hw.get_axis_config('x', 'velocity')
-        velocity_dict['y'] = self.stage_hw.get_axis_config('y', 'velocity')
-        velocity_dict['z'] = self.stage_hw.get_axis_config('z', 'velocity')
-        return velocity_dict
-    
-    @hwerror_handler
-    def set_velocities(self, velocity_dict):
-        if 'x' in velocity_dict.keys():
-            self.stage_hw.set_axis_config('x', velocity=velocity_dict['x'])
-        if 'y' in velocity_dict.keys():
-            self.stage_hw.set_axis_config('y', velocity=velocity_dict['y'])
-        if 'z' in velocity_dict.keys():
-            self.stage_hw.set_axis_config('z', velocity=velocity_dict['z'])
-
-    def optimise_z(self, steps, volts):
-        """Perform z sweep while recording count rate to optimise focus"""
-
-        # Initialise variables
-        self.sweep_length = steps
-        self.v_sweep_length = volts
-        self.abort = False
-
-        if steps > 0:
-            # Stepping optimisation
-            self._start_step_optimisation()
-
-        elif volts > 0:
-            # Offset V optimisation
-            self._start_volt_optimisation()
-    
-    def _start_step_optimisation(self):
-        # Start stepping optimisation routine
-        self.current_step = -self.sweep_length
-        self.sweep_counts = []
-
-        # Zero offset voltage for stepping operations
-        self.stage_hw.set_axis_config('z', offset_voltage=0)
-
-        # Move to end of search range
-        try:
-            self.stage_hw.move_steps('z', steps=self.current_step)
-        except PositionerError as err:
-            self.log.error('Aborting sweep due to hardware error: {}'.format(err))
-            return
-
-        # Start counter running
-        self.counter_logic.startCount()
-
-        # Start QTimer (first delay 4x as long to allow counter extra time to start)
-        QtCore.QTimer.singleShot(self.optimise_delay*4, self._optimisation_step)
-
-    def _start_volt_optimisation(self):
-        # Start offset voltage (fine) optimisation routine
-        self.current_v_step = 0
-        self.sweep_counts = []
-
-        # Move one step back and an additional 1 step per 20 V in volt sweep
-        steps = self.v_sweep_length // 20 + 1
-        self.log.debug('Moving {} steps back'.format(steps))
-        self.stage_hw.move_steps('z', steps=-steps)
-
-        # Start counter running
-        self.counter_logic.startCount()
-
-        # Start QTimer (first delay 4x as long to allow counter extra time to start)
-        QtCore.QTimer.singleShot(self.optimise_delay*4, self._volt_optimisation_step)
-
-    @thread_lock
-    def _volt_optimisation_step(self):
-        """Function called when optimise_timer expires."""
-        if self.abort:
-            self.counter_logic.stopCount()
-            return
-
-        # Check if counter logic module is locked (i.e. if counter is running)
-        if self.counter_logic.module_state() == 'locked':
-            # Get last count value and store
-            counts = self.counter_logic.countdata_smoothed[-1, -2]
-            self.sweep_counts.append(counts)
-
-            # Emit event that can be caught by GUI to update
-            self.sigCountDataUpdated.emit()
+    def set_axis_config(self, axis, **config_options):
+        """ Sets axis config options
         
-            if (self.current_v_step < self.v_sweep_length):
-                try:
-                    self.stage_hw.set_axis_config('z', offset_voltage=self.current_v_step)
-                except PositionerError as err:
-                    self.log.error("Aborting sweep due to hardware error: {}".format(err))
-                    self.counter_logic.stopCount()
-                    return
+        Accepts config options as kwargs to pass through to the hardware.
+        """
+        self.stage_hw.set_axis_config(axis, **config_options)
 
-                self.current_v_step += 1
+    def get_axis_config(self, axis, option=None):
+        """ Gets axis parameters.
+        
+        @param axis str: Axis to get parameters from
+        @param option str: (optional) Parameter to retrieve. If not specified, 
+            return dict of all available config options.
+        """
+        return self.stage_hw.get_axis_config(axis, option)
 
-                # Start timer for next iteration
-                QtCore.QTimer.singleShot(self.optimise_delay, self._volt_optimisation_step)
+    def home_axis(self, axis=None):
+        """ Homes stage
+        
+        @param axis str: If specified, home this axis only. Otherwise home
+            all axes. """
+        self.stage_hw.reference_axis(axis)
 
-            else:
-                # Sweep done - stop counter (not necessary)
-                #self.counter_logic.stopCount()
+    ##################
+    # Velocity presets
+    ##################
 
-                # Find index of maximum point, which will equal required offset voltage
-                max_index = np.argmax(self.sweep_counts)
-                self.log.debug('Optimum at {} volts'.format(max_index))
+    def set_velocity_to_preset(self, preset):
+        """ Sets velocities to the preset values.
 
-                # Set offset voltage to this maximum.
-                try:
-                    self.stage_hw.set_axis_config('z', offset_voltage=max_index)
-                except PositionerError as err:
-                    self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
+        @param preset str: 'fast', 'medium' or 'slow'.
+        """
+        allowed_values = ('fast', 'medium', 'slow')
+        if preset not in allowed_values:
+            raise ValueError("Preset must be one of {}".format(allowed_values))
 
-                self.sigOptimisationDone.emit()
+        # pylint: disable=unsubscriptable-object
+        for axis, velocity in self.preset_velocities[preset].items():
+            self.stage_hw.set_axis_config(axis, velocity=velocity)
+            
+        self.sigVelocityUpdated.emit(self.preset_velocities[preset])
 
-    @thread_lock
-    def _optimisation_step(self):
-        """Function called when optimise_timer expires."""
-        if self.abort:
-            self.counter_logic.stopCount()
+    def set_preset_values(self, slow=None, medium=None, fast=None):
+        """ Sets values for velocity presets.
+
+        Any missing kwargs are left unchanged.
+
+        @param slow tuple(float): Set slow velocities for (x, y, z) axes.
+        @param medium tuple(float): Set medium velocities for (x, y, z) axes.
+        @param fast tuple(float): Set fast velocities for (x, y, z) axes.
+        """
+        axes = ('x', 'y', 'z')
+
+        # pylint: disable=unsupported-assignment-operation
+        if slow is not None:
+            self.preset_velocities['slow'] = dict(zip(axes, slow))
+
+        if medium is not None:
+            self.preset_velocities['medium'] = dict(zip(axes, medium))
+
+        if fast is not None:
+            self.preset_velocities['fast'] = dict(zip(axes, fast))
+
+    ##############################
+    # Internal stage control slots
+    ##############################
+
+    @QtCore.Slot(dict)
+    def _do_jog(self, param_list):
+        """ Internal method to start jog. Slot for sigStartJog"""
+        self.stage_hw.start_continuous_motion(*param_list)
+
+    @QtCore.Slot(dict)
+    def _do_step(self, param_list):
+        """ Internal method to start jog. Slot for sigStartStep"""
+        self.stage_hw.move_steps(*param_list)
+    
+    @QtCore.Slot(str)
+    def _stop_axis(self, axis):
+        """ Internal method to stop axis. Slot for sigStopAxis"""
+        self.stage_hw.stop_axis(axis)
+        self.stage_hw.set_axis_config(axis, offset_voltage=0)
+
+    ##################
+    # Position polling
+    ##################
+
+    def start_poll(self):
+        """ Start polling the stage position """
+        self.poll = True
+        QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
+
+    def _poll_position(self):
+        """ Poll the stage for its current position.
+
+        Designed to be triggered by timer; emits sigPositionUpdated every time
+        the position is polled, and sigHitTarget the first time the stage
+        reports that no axes are moving after a move was started.
+        """
+        if not self.poll:
             return
 
-        # Check if counter logic module is locked (i.e. if counter is running)
-        if self.counter_logic.module_state() == 'locked':
-            # Get last count value and store
-            counts = self.counter_logic.countdata_smoothed[-1, -2]
-            self.sweep_counts.append(counts)
+        pos_dict = {}
 
-            # Emit event that can be caught by GUI to update
-            self.sigCountDataUpdated.emit()
+        try:
+            pos_dict['x'] = self.stage_hw.get_position('x')
+            pos_dict['y'] = self.stage_hw.get_position('y')
+            pos_dict['z'] = self.stage_hw.get_position('z')
 
-            if self.current_step < self.sweep_length:
-                # If not already at end of sweep move stage 1 step
-                try:
-                    self.stage_hw.move_steps('z', 1)
-                except PositionerError as err:
-                    self.log.error("Aborting sweep due to hardware error: {}".format(err))
-                    self.counter_logic.stopCount()
-                    return
-
-                self.current_step += 1
-
-                # Start timer for next iteration
-                QtCore.QTimer.singleShot(self.optimise_delay, self._optimisation_step)
+            if not self.is_moving():
+                if not self.on_target:
+                    self.sigHitTarget.emit()
+                    self.on_target = True
             else:
-                # Sweep done - stop counter (not actually necessary, left for reference)
-                # self.counter_logic.stopCount()
+                if self.on_target:
+                    self.on_target = False
 
-                # Find index of maximum point, and calculate how far back to move
-                max_index = np.argmax(self.sweep_counts)
-                steps = 2*self.sweep_length - max_index
-                self.log.debug('Optimum at {} steps from current position'.format(steps))
+        except PositionerError:
+            # Ignore hardware errors.
+            pass
 
-                # Do the movement
-                try:
-                    if steps > 0:
-                        # Move stage if needed (note steps=0 seems to give continuous motion)
-                        self.stage_hw.move_steps('z', -steps)
-                except PositionerError as err:
-                    self.log.error('Could not return stage to optimum position due to hardware error: {}'.format(err))
+        self.sigPositionUpdated.emit(pos_dict)
+        QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
 
-                if self.v_sweep_length > 0:
-                    # If fine voltage sweep requested, start it after small delay
-                    QtCore.QTimer.singleShot(self.optimise_delay*4, self._start_volt_optimisation)
-                else:
-                    # Otherwise emit Optimisation Done signal and return
-                    self.sigOptimisationDone.emit()                   
+    ###################
+    # Gamepad interface
+    ###################
 
-        else:
-            self.log.error("Sweep aborted: counter unexpectedly stopped.")
-
-    @thread_lock
-    def abort_optimisation(self):
-        self.abort = True
-
-    # Xbox control commands
+    @QtCore.Slot(str)
     def xbox_button_press(self,button):
+        """ Moves stage according to inputs from the Xbox controller buttons.
+
+        Slot for sigButtonPressed from xboxlogic module."""
         self.on_target = False
         # D-pad: click x and y
         if button == 'left_down':
@@ -376,7 +332,7 @@ class StagecontrolLogic(GenericLogic):
             # D-pad up
             self.step('y', 1)
 
-        if button == 'left_left':
+        elif button == 'left_left':
             # D-pad left
             self.step('x', -1)
 
@@ -384,20 +340,35 @@ class StagecontrolLogic(GenericLogic):
             # D-pad right
             self.step('x', 1)
 
-        elif button == 'right_right':
-            # B button
-            self.stop()
-
         # Shoulder buttons: left - z down, right - z up
-        if button == 'left_shoulder':
+        elif button == 'left_shoulder':
             # Left shoulder
             self.step('z', -1)
 
         elif button == 'right_shoulder':
             # Right shoulder
             self.step('z', 1)
+
+        # A, B, X, Y
+        elif button == 'right_down':
+            # A button
+            self.set_velocity_to_preset('slow')
+        elif button == 'right_up':
+            # Y button
+            self.set_velocity_to_preset('fast')
+        elif button == 'right_left':
+            # X button
+            self.set_velocity_to_preset('medium')
+        elif button == 'right_right':
+            # B button
+            self.stop()
     
+    @QtCore.Slot(dict)
     def xbox_joystick_move(self,joystick_state):
+        """ Moves stage according to inputs from the Xbox controller joysticks.
+
+        Slot for sigJoystickMoved from xboxlogic module."""
+
         self.on_target = False
         # Z-control on y-axis of right-hand joystick
         z = joystick_state['y_right']
@@ -445,7 +416,7 @@ class StagecontrolLogic(GenericLogic):
                 required_y = np.sign(y)
 
         # Do required movements, checking flags to minimise commands sent to
-        # Attocube controller.
+        # stage controller.
 
         if required_x == 0 and self.x_joystick_jog_running != 0:
             # Stop x
@@ -478,143 +449,3 @@ class StagecontrolLogic(GenericLogic):
             elif x < 0:
                 self.start_jog('x', False)
                 self.x_joystick_jog_running = -1
-
-    def start_poll(self):
-        self.poll = True
-        QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
-
-    def _poll_position(self):
-        """
-        Poll the stage for its current position
-        """
-        if not self.poll:
-            return
-
-        pos_dict = {}
-
-        try:
-            pos_dict['x'] = self.stage_hw.get_position('x')
-            pos_dict['y'] = self.stage_hw.get_position('y')
-            pos_dict['z'] = self.stage_hw.get_position('z')
-
-            if not self.is_moving():
-                if not self.on_target:
-                    self.sigHitTarget.emit()
-                    self.on_target = True
-            else:
-                if self.on_target:
-                    self.on_target = False
-
-        except PositionerError:
-            # Ignore hardware errors.
-            pass
-
-        self.sigPositionUpdated.emit(pos_dict)
-        QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
-
-    def home_axis(self, axis='all'):
-        self.stage_hw.reference_axis(axis)
-
-    def move_abs(self, move_dict):
-        self.on_target = False
-        if 'x' in move_dict.keys():
-            self.stage_hw.set_position('x', move_dict['x'])
-        if 'y' in move_dict.keys():
-            self.stage_hw.set_position('y', move_dict['y'])
-        if 'z' in move_dict.keys():
-            self.stage_hw.set_position('z', move_dict['z'])
-
-    def move_rel(self, move_dict):
-        self.on_target = False
-        if 'x' in move_dict.keys():
-            self.stage_hw.set_position('x', move_dict['x'], True)
-        if 'y' in move_dict.keys():
-            self.stage_hw.set_position('y', move_dict['y'], True)
-        if 'z' in move_dict.keys():
-            self.stage_hw.set_position('z', move_dict['z'], True)
-
-    def is_moving(self):
-        if (
-            self.stage_hw.get_axis_status('x', 'on_target') and
-            self.stage_hw.get_axis_status('y', 'on_target') and
-            self.stage_hw.get_axis_status('z', 'on_target')
-            ):
-            return False
-        else:
-            return True
-
-    def optimise_microns(self, microns):
-        """Perform closed-loop Z sweep."""
-        self.clsweep_length = microns
-        
-        # Choose step size so there are 20 points in the scan
-        self.clsweep_step = microns / 10
-        
-        self.abort = False
-
-        self.clsweep_current_pos = -self.clsweep_length
-        self.sweep_counts = []
-        self.clsweep_pos = []
-
-        # Move to end of sweep range
-        self.stage_hw.set_position('z', -self.clsweep_length, relative=True)
-
-        # Start counter running
-        if self.counter_logic.module_state() != 'locked':
-            self.counter_logic.startCount()
-
-        # Start QTimer
-        QtCore.QTimer.singleShot(self.cl_optimise_delay, self._closedloop_optimisation_step)     
-
-    @thread_lock
-    def _closedloop_optimisation_step(self):
-        """
-        Do step in closed-loop optimisation
-        """
-        if self.abort:
-            self.counter_logic.stopCount()
-            return
-
-        if not self.stage_hw.get_axis_status('z', 'on_target'):
-            # If the stage is still moving, wait for another optimise_delay
-            QtCore.QTimer.singleShot(self.cl_optimise_delay, self._closedloop_optimisation_step)
-            return
-        
-        if self.counter_logic.module_state() == 'locked':
-            # Get current stage position
-            pos = self.stage_hw.get_position('z')
-            self.clsweep_pos.append(pos)
-
-            # Get last count value and store
-            counts = self.counter_logic.countdata[-1, -2]
-            self.sweep_counts.append(counts)
-
-            # Emit event that can be caught by GUI to update
-            self.sigCountDataUpdated.emit()
-
-            # Check if at end of sweep
-            if self.clsweep_current_pos < self.clsweep_length:
-                # If not already at end of sweep, move stage 1 step
-                # Calc next position
-                self.clsweep_current_pos += self.clsweep_step
-
-                self.stage_hw.set_position('z', self.clsweep_step, relative=True)
-
-                # Start timer for next iteration
-                QtCore.QTimer.singleShot(self.cl_optimise_delay, self._closedloop_optimisation_step)
-            else:
-                # Optimisation done
-                # Find max counts
-                max_index = np.argmax(self.sweep_counts)
-
-                # Find actual stage position of max counts
-                max_pos = self.clsweep_pos[max_index]
-
-                # And go to it
-                self.stage_hw.set_position('z', max_pos)
-
-                # Emit 'finished' signal to update GUI
-                self.sigOptimisationDone.emit()
-
-    def get_hw_manufacturer(self):
-        return self.stage_hw.hw_info()['manufacturer']
