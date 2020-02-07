@@ -148,7 +148,7 @@ class QuTau:
         # Load qutau DLL
         if dll_path is not None:
             os.environ["PATH"] += os.pathsep + dll_path
-        self.tdcbase = ct.cdll.LoadLibrary(dll_name)
+        self.tdcbase = ct.windll.LoadLibrary(dll_name)
 
         # Internal attribute for storing a pointer to the C lib's HBT struct
         self.hbt_ptr = None
