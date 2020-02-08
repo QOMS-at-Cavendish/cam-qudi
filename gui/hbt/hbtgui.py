@@ -3,10 +3,11 @@
 """
 This file contains the Qudi HBT gui.
 
-Slightly modified from github.com/WarwickEPR/qudi
+Modified from github.com/WarwickEPR/qudi
 
 Main changes:
     -   Added settings dialog
+    -   Reworked GUI
     -   Removed incomplete fitting stuff
 
 John Jarman jcj27@cam.ac.uk
@@ -100,7 +101,7 @@ class HbtGui(GUIBase):
         self._sd = HbtSettingsDialog()
         self._save_dialog = SaveDialog(self._mw)
 
-        self.hbt_image = pg.PlotDataItem((0,),
+        self.hbt_plotdata = pg.PlotDataItem((0,),
                                          (0,),
                                          pen=pg.mkPen(palette.c1, width=2),
                                          symbol='o',
@@ -109,25 +110,12 @@ class HbtGui(GUIBase):
                                          symbolSize=2)
 
         # Set up HBT plot
-        self._mw.hbt_plot_PlotWidget.addItem(self.hbt_image)
+        self._mw.hbt_plot_PlotWidget.addItem(self.hbt_plotdata)
         self._mw.hbt_plot_PlotWidget.setLabel(
             axis='left', text='Coincidences', units='Counts')
         self._mw.hbt_plot_PlotWidget.setLabel(
             axis='bottom', text='Time', units='s')
         self._mw.hbt_plot_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        #####################
-        # Connecting user interactions
-        self._mw.run_hbt_Action.triggered.connect(self._hbt_logic.start_hbt)
-        self._mw.stop_hbt_Action.triggered.connect(self._hbt_logic.stop_hbt)
-        self._mw.save_hbt_Action.triggered.connect(self.save_clicked)
-        self._mw.clear_hbt_Action.triggered.connect(self.clear_hbt)
-        self._mw.histogram_setup_Action.triggered.connect(self._sd.exec_)
-        self._mw.record_timestamps_Action.toggled.connect(self.record_clicked)
-
-        # Settings dialog
-        self._sd.accepted.connect(self.update_settings)
-        self._sd.rejected.connect(self.reset_settings)
 
         # Settings dialog initialisation
         channels = self._hbt_logic.get_channels()
@@ -139,23 +127,34 @@ class HbtGui(GUIBase):
         
         self.reset_settings()
 
-        ##################
-        # Handling signals from the logic
-        self._hbt_logic.hbt_updated.connect(self.update_data)
-        self._hbt_logic.hbt_save_started.connect(self._save_dialog.show)
-        self._hbt_logic.hbt_saved.connect(self._save_dialog.hide)
-        self._hbt_logic.hbt_running.connect(self.update_hbt_run_status)
-        self._hbt_logic.started_recording.connect(
-            lambda: self._mw.record_timestamps_Action.setChecked(True))
-        self._hbt_logic.stopped_recording.connect(
-            lambda: self._mw.record_timestamps_Action.setChecked(False))
+        #################
+        # Connect signals
+        #################
+        self.connections = [
+            # User interactions
+            self._mw.run_hbt_Action.triggered.connect(self._hbt_logic.start_hbt),
+            self._mw.stop_hbt_Action.triggered.connect(self._hbt_logic.stop_hbt),
+            self._mw.save_hbt_Action.triggered.connect(self.save_clicked),
+            self._mw.clear_hbt_Action.triggered.connect(self.clear_hbt),
+            self._mw.histogram_setup_Action.triggered.connect(self._sd.exec_),
+            self._mw.record_timestamps_Action.toggled.connect(self.record_clicked),
+
+            # Settings dialog
+            self._sd.accepted.connect(self.update_settings),
+            self._sd.rejected.connect(self.reset_settings),
+
+            # From logic module
+            self._hbt_logic.hbt_updated.connect(self.update_data),
+            self._hbt_logic.hbt_save_started.connect(self._save_dialog.show),
+            self._hbt_logic.hbt_saved.connect(self._save_dialog.hide),
+            self._hbt_logic.hbt_running.connect(self.update_hbt_run_status),
+            self._hbt_logic.started_recording.connect(
+                lambda: self._mw.record_timestamps_Action.setChecked(True)),
+            self._hbt_logic.stopped_recording.connect(
+                lambda: self._mw.record_timestamps_Action.setChecked(False))
+        ]
 
         return 0
-
-    @QtCore.Slot(bool)
-    def update_hbt_run_status(self, status):
-        self._mw.run_hbt_Action.setEnabled(not status)
-        self._mw.stop_hbt_Action.setEnabled(status)
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -167,9 +166,38 @@ class HbtGui(GUIBase):
     def on_deactivate(self):
         """ Deactivate the module
         """
-        self._hbt_logic.stop_hbt()
+        for conn in self.connections:
+            QtCore.QObject.disconnect(conn)
         self._mw.close()
-        return
+
+    ###########
+    # GUI slots
+    ###########
+
+    @QtCore.Slot()
+    def save_clicked(self):
+        """ Save action slot """
+        self._hbt_logic.save_hbt()
+
+    @QtCore.Slot()
+    def clear_hbt(self):
+        """ Clear action slot """
+        self._hbt_logic.clear_hbt()
+
+    @QtCore.Slot(bool)
+    def record_clicked(self, enable):
+        """ Record timestamps action slot  """
+        self._hbt_logic.enable_recording(enable)
+
+    #############
+    # Logic slots
+    #############
+
+    @QtCore.Slot(bool)
+    def update_hbt_run_status(self, status):
+        """ Updates run/stop buttons when signalled by logic """
+        self._mw.run_hbt_Action.setEnabled(not status)
+        self._mw.stop_hbt_Action.setEnabled(status)
 
     def update_data(self):
         """ Updates g(2) plot
@@ -177,21 +205,7 @@ class HbtGui(GUIBase):
         Handler for logic's hbt_updated signal
         """
         data = self._hbt_logic.get_data()
-        self.hbt_image.setData(data[:, 0], data[:, 1])
-
-    def save_clicked(self):
-        """ Handling the save button to save the data into a file.
-        """
-        self._hbt_logic.save_hbt()
-
-    def clear_hbt(self):
-        """ Clears HBT. (toolbar button callback)
-        """
-        self._hbt_logic.clear_hbt()
-
-    @QtCore.Slot(bool)
-    def record_clicked(self, enable):
-        self._hbt_logic.enable_recording(enable)
+        self.hbt_plotdata.setData(data[:, 0], data[:, 1])
 
     #################
     # Settings dialog
