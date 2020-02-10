@@ -28,6 +28,7 @@
 /documentation/generated
 /documentation/images
 /Data
+/qudi-venv*
 
 # log files
 *.log
