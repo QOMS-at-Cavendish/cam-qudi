@@ -1,6 +1,10 @@
-# qudi
+# qudi (modified by QoMS at Cambridge)
 Qudi is a suite of tools for operating multi-instrument and multi-computer laboratory experiments.
 Originally built around a confocal fluorescence microscope experiments, it has grown to be a generally applicaple framework for controlling experiments.
+
+This fork includes modifications by the Quantum Optical Materials and Systems
+group at the University of Cambridge. Please see the documentation for details
+of our modifications.
 
 ## Features
   * A modular and extendable architecture

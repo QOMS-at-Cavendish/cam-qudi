@@ -1,81 +1,91 @@
-# How to get started  {#get-started}
+# Getting started {#get-started}
 
-This article is a attempt at guiding new users through the process of installing, understanding and using Qudi.
+This page is a tutorial on getting Qudi set up and running, and an introduction
+to using it for making measurements.
 
-## Installation on a test machine
+Qudi can be run without actual hardware connected, so you can look at the GUIs
+available and play around in a test environment. The installation is the same
+whether you want to try Qudi in the office, or put it on a lab computer
+ready to take data.
 
-If you are new to Qudi, you may want to try it out in a demo environment on your own computer.
+## Installation
 
-Luckily, the way Qudi is built let you have a look at most user interfaces and tools even if your computer isn't really
-connected to real instruments. There even are some module that try to simulate what real instruments on a real setup
-would give.
+Follow the [installation guide](@ref installation) to get Qudi set up on your
+computer. The "Quick install using Miniconda" is the easiest thing to do.
 
-#### Installation
+## Modules
 
-To install Qudi on your test machine, you can follow the dedicated [installation guide](@ref installation).
+Qudi uses the concept of 'modules' to separate different functions that might
+be useful on different setups. Modules come in three types: GUI, Logic and 
+Hardware. On the manager screen that is displayed when Qudi starts up, you
+can see these modules listed under three tabs (one for each type).
 
-The default configuration file `config/example/default.cfg` gives access to most GUI modules. You can try them without
-worrying of breaking anything.
+You can load a module by clicking its name in the manager. Any modules that it
+depends on are also loaded; usually, you only need to click on the GUI you want
+to use, and the required logic and hardware modules are loaded up automatically.
 
-## Installation on the setup machine
+On its first start, Qudi will be  configured in a 'demo' mode, and will 
+generate dummy data to show how each GUI is supposed to work - you can try loading some GUI modules to explore their features using this. 
+(Note the stagecontrol, hbt and fibreswitch modules developed in Cambridge 
+aren't available to demo here yet)
 
-Now that you have explored the basic features of Qudi and are convinced to use it in you lab, you need to install Qudi
-on a machine that have access to the instruments.
+## Configuration
 
-The basic installation is exactly the same as for the test machine.
+Qudi uses a configuration file to set it up for measurements. This file controls
+which modules appear in the manager, how they are connected to each other, and
+what settings are used to make them work with hardware.
 
-Once you have done this, you will need to configure Qudi to your requirements.
-It is best to create a `config/local` directory to hold your site-specific config files.
-An `app_status` folder is created in the directory of the active config file, and this 
-directory holds saved status variables that allow Qudi to restore to the previous state
-after shutdown. Some modules may have different values (number of channels, etc) for different
-config files, and so it is important to have a subdirectory for each config file.
+The default configuration file `config/example/default.cfg` connects some
+'dummy' hardware modules to the logic and GUIs, putting it in a demo mode that
+is useful for testing without requiring actual hardware.
 
-#### Basic Configuration
+## Using Jupyter Notebooks
 
-The Qudi suite was originally built around a NI card controlled confocal fluorescence microscope experiments. 
-For this reason, let's assume your setup is similar.
+One of the most powerful features of Qudi is its integration with Jupyter
+notebooks, which allows custom or automatic experiments to be rapidly
+developed and run side-by-side with the Qudi GUI. Run
+`python core/qudikernel.py install` from the Qudi directory to install the
+Jupyter kernel, making sure the conda environment is activated first.
 
-For a detailed explanation on the config file, please refer to the dedicated article 
-[How to use and understand a config file](@ref config-explanation)
+Please see the [Jupyter setup](@ref jupyterkernel) page for more instructions.
 
-##### The setup
+### Creating a notebook
 
-A confocal fluorescence microscope can be summarized as a detector of fluorescence (single photon or light intensity)
- and a moving device to move the this detector relatively to a sample. This could be piezo scanners, a steering mirror,
-  piezo steppers, or even a combination of any of them.
+When creating a notebook, you will need to pick 'Qudi' from the drop-down
+list that appears under 'New', on the right-hand side of the notebook browser.
 
-##### Qudi modules
+The resulting notebook will be running the Qudi notebook kernel. This means
+that you can access attributes and methods of all loaded modules in Qudi. For example, running the following Python code will run a confocal xy scan,
+return it as a Numpy array, and plot it.
+```python
+import time
+import matplotlib.pyplot as plt
 
-As a user, you interact with the GUI modules. Here we focus on two of them : `counter` and `confocal`.
-You can find detailed documentation in [Counter GUI] and [Confocal GUI](@ref confocalgui)
+# Start xy scan
+scannerlogic.start_scanning()
 
-This GUI modules need to be connected to their logic module, which in turn need some hardware module preferably through 
-a dedicated interface.
+# Wait until scan completes: the module will be 'locked' until then.
+while scannerlogic.module_state() == 'locked':
+    time.sleep(0.1)
 
-For now, the `hardware/national_instruments_x_series` file used with a NI Card is the main hardware module and a lot 
-the Qudi code is build around it. In future versions, the separation between hardware and logic should be refined.
+# Get confocal scan data
+# Array slices available: 
+# [:, :, 0]: Real X position at each point
+# [:, :, 1]: Real Y position at each point
+# [:, :, 2]: Real Z position at each point
+# [:, :, 3]: First channel of counter data.
+xy_image = scannerlogic.xy_image[:, :, 3]
 
-For now, you can refer to [National Instrument X Series Hardware] to understand how to configure this hardware module.
+# Plot it
+plt.imshow(xy_image)
+plt.show()
+```
+You should also notice that the confocal scan data is being updated in the GUI
+at the same time.
 
-## Other modules
+Note that plotting works a bit differently compared to normal Jupyter notebooks,
+because "magic commands" (e.g. `%matplotlib inline`) are not supported. Just
+calling plt.show() will display plots in the Jupyter notebook.
 
-Qudi now has a lot of other modules and capabilities. We won't go through all of them here, we're just going to cite
-some of them. To find out about all of them, you will need to go through the documentation and might need to dive into
-the Python code.
-- [ODMR] (Continous wave, sweep or list)
-- [Microwave pulse generator]
-- [Spectroscoy]
-
-## Then what ?
-
-You might be lucky enough to find all the tools you need to conduct you experiment. But there's a good chance you will
-need something that haven't been developed before. 
-
-This may be just a hardware module to control a new instrument, a new button in a GUI or a whole new hardware/logic/GUI
-tool.
-
-In that case, you will need to go even deeper in the code and you might want to share your hard work. Please refer to 
-[How to participate] page to find everything you need to know about collaborating.
- 
+## Configuring for a real lab
 

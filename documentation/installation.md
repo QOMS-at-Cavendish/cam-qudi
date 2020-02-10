@@ -1,76 +1,63 @@
 # Installation        {#installation}
 
-## Quick Start
+## Quick install using Miniconda
 
-1. Get a Python 3 version of the conda package manager (eg Anaconda, miniconda, etc).
-2. Clone https://github.com/Ulm-IQO/qudi.git
-3. Install the qudi conda environment suitable for your operating system (located in the `tools` directory of the qudi code).
-4. Copy the default example config into a 'config/local' subdirectory so that you can edit it without impacting the project examples.
-4. Run `start.py` in this conda environment.
+1. Download the latest version of [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
+2. Install it, keeping any options as their defaults.
+3. Download Qudi from either https://github.com/johnjarman/cam-qudi (with
+    Cambridge mods) or https://github.com/Ulm-IQO/qudi (unmodified) and 
+    extract all of its files to somewhere memorable (e.g. `C:\qudi`)
+4. Open the Anaconda Prompt, which should have been installed by Miniconda.
+    (Try searching the Start Menu on Windows)
+5. Use the `cd` (change directory) command to set the current directory to the
+    folder where you copied Qudi. E.g., type `cd C:\qudi` and press Enter.
+6. Run `tools\install-python-modules-windows.bat`. This will set up a Conda
+    environment with all the required packages for running Qudi.
+7. Run `conda activate qudi` to activate this environment (you'll need to 
+    do this each time you restart Anaconda Prompt)
+8. Run `python start.py` to start up Qudi.
 
-See below for more specific instructions.
+To make Qudi easy to start, you can also 
+[create a desktop shortcut](@ref desktop-shortcut).
 
-## The options
+## Hardware driver installation
 
-#### Anaconda vs Manual
-Qudi is a Python 3 program that need some modules to work. In order to use Python version 3 and theses
-dependencies, Qudi might be used with [Anaconda](https://en.wikipedia.org/wiki/Anaconda_(Python_distribution)),
- a free open source tool that let your computer have multiples "environments"
-installed at the same time, and just switch from one to another in a command terminal.
+Qudi also needs appropriate drivers and libraries to communicate with hardware.
 
-This tool also ease the installation as you can create an environment for Qudi with all the modules needed by importing 
-them from the ``.yml`` file in the ``tool`` folder.
+Please check the documentation pages for individual hardware modules for some
+tips on finding appropriate drivers and software for specific pieces of hardware.
 
-It is highly recommended you use this option. If however you want to go manual, you can find more information 
-[here](@ref manual-package-installation)
+## More installation information
 
-#### Git vs Download
+### Requirements
 
-If you just want to run Qudi as is, you can download the source code from GitHub and use this installation guide to run
-it.
+Qudi requires Python 3.6 or 3.7, and is not yet compatible with Python 3.8 due
+to its use of a deprecated event loop for `pyzmq`. 
+The 64-bit version of Python is also needed for compatibility with the widest
+range of hardware DLLs.
 
-However, Qudi is in constant development for new features and bug fixes, so it is highly recommended to use Git,
-even for production environment.
+A complete list of the Python modules depended on by Qudi can be found in
+`requirements.txt`.
 
-[Git](https://en.wikipedia.org/wiki/Git) is a very popular free and open source version control system that let developers track changes
-in the source code and keep things organized. It is also a tool that can let you set up and update your production 
-environment easily. GitHub, the website that host the Git repository is an tool built on top of Git to add some 
-capabilities and a more user friendly interface.
+Qudi works with vanilla Python as well as Miniconda/Anaconda; if you prefer, 
+you can install the required packages using 
+`pip install -r requirements.txt`, optionally in a `venv`.
 
-#### PyCharm vs others
+### Git
 
-PyCharm is a 
-[integrated development environment (IDE)](https://en.wikipedia.org/wiki/Integrated_development_environment)
-built for Python. It has a Community Edition that is free and open source.
+Qudi uses git as its version control system. If you want to keep up with
+updates, or make any changes to Qudi, you will need Git.
 
-PyCharm is a very good code editor for Python that will help you dive into the code and modify it efficiently.
-It is compatible with Anaconda environments to detect available modules.
-It is great for wringing documentation as it has an real time rendering  tool.
+Get Git for Windows from https://git-for-windows.github.io/
 
-If you intend to use Qudi, it is recommended to setup Pycharm on your machine.
+To make Qudi work with Git, you will need to run `git clone <repo_url>` instead of copying over Qudi's files by hand.
 
-## Windows installation
+Replace `<repo_url>` with one of the following:
 
-1. Get Git for Windows from https://git-for-windows.github.io/ 
-and TortoiseGIT from https://tortoisegit.org/ and install it.
+- For unmodified Qudi, use `https://github.com/Ulm-IQO/qudi.git`
+- For the Cambridge version, use `https://github.com/johnjarman/cam-qudi.git`
 
-2. Get the Anaconda Python 3.x distribution from https://www.anaconda.com/download/ .
-Choose Install for all users and register Python in the system.
-
-3. Get PyCharm from https://www.jetbrains.com/pycharm/download and install it.
-
-4. Do a git clone of https://github.com/Ulm-IQO/qudi.git
-
-5. In the checked out folder, go to the `tools` folder and execute the `install-python-modules-windows.bat` file.
-
-6. Open the checked out folder in PyCharm and configure the project interpreter to be `C:\Anaconda3\envs\qudi\python.exe`.
-
-7. Configuring the project interpreter is described on this site:
-https://www.jetbrains.com/pycharm/help/configuring-python-interpreter-for-a-project.html .
-
-8. Now you can open `start.py` in the PyCharm project and execute it by right clicking the file tab and choosing execute.
-
-#### Desktop shortcut
+#### Desktop shortcut {#desktop-shortcut}
 
 You can create a Desktop shortcut to launch Qudi easily on your machine.
 
@@ -95,11 +82,6 @@ Please note, in Windows you cannot switch directly between partitions with cd (i
 If Qudi's program is stored in another partition, you need to change the command to :
 ` %windir%\System32\cmd.exe "/K" <path-to-activation-script> "<path-to-qudi-environment>" && D:
      && cd "<path-to-qudi-directory-on-D-partition>" && python "start.py" `
-
-
-
-
-
 
 ## Linux installation
 
