@@ -27,6 +27,7 @@ import numpy as np
 from logic.generic_logic import GenericLogic
 from core.module import Connector
 from core.configoption import ConfigOption
+from core.statusvariable import StatusVar
 from qtpy import QtCore
 
 import matplotlib.pyplot as plt
@@ -40,27 +41,23 @@ class HbtLogic(GenericLogic):
 
     hbtlogic:
         module.Class: 'hbt_logic.HbtLogic'
-        start_channel: 1
-        stop_channel: 2
-        bin_width: 4
-        bin_count: 500
     """
 
-    start_channel = ConfigOption('start_channel', 1)
-    stop_channel = ConfigOption('stop_channel', 2)
+    start_channel = StatusVar(default=1)
+    stop_channel = StatusVar(default=2)
 
     # Bin width and count in hardware units
-    bin_width = ConfigOption('bin_width', 4)
-    bin_count = ConfigOption('bin_count', 500)
+    bin_width = StatusVar(default=4)
+    bin_count = StatusVar(default=500)
 
     # Channel 1 delay in hardware units
-    delay = ConfigOption('delay', 0)
+    delay = StatusVar(default=0)
 
     # Update rate in Hz
     _update_rate = ConfigOption('update_rate', 1)
 
     # Max filesize for saved timestamp data (bytes)
-    _max_filesize = ConfigOption('max_filesize', 10e9)
+    sizelimit = StatusVar(default=10e9)
 
     savelogic = Connector(interface='SaveLogic')
 
@@ -104,8 +101,6 @@ class HbtLogic(GenericLogic):
         self._file_check_timer.timeout.connect(self._check_file)
         self.started_recording.connect(lambda: self._file_check_timer.start(1e4))
         self.stopped_recording.connect(self._file_check_timer.stop)
-
-        self.sizelimit = 10e9
 
         self._hbt_running = False
     
