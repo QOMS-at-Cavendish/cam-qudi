@@ -5,20 +5,25 @@ qutaupy
 
 Python wrapper for Qutau DLL.
 
-Copyright John Jarman 2020 (jcj27@cam.ac.uk)
+Copyright John Jarman 2020
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 This code also includes function descriptions in docstrings modified from QuTAU 
 header files, available from qutools.com. These parts are copyright qutools 
@@ -98,7 +103,14 @@ class TDC_SignalCond(enum.IntEnum):
 
 
 class QuTauError(Exception):
-    """General exception for non-zero return values.
+    """ Exception raised for QuTAU errors.
+
+    Attributes
+    ---
+    - 'value': Error code. This is the return code from the QuTAU DLL function
+        that caused the exception to be raised.
+    - 'msg': Human-readable description of the error (one of the values in the
+        errors enum)
     """
 
     def __init__(self, value, msg=''):
@@ -141,8 +153,8 @@ class QuTau:
 
     Non-zero return values from DLL methods raise QuTauError.
     DLL functions that return multiple values via pointers return these values
-    in a dict with keys that correspond to the variable names in tdcbase.h, 
-    tdcstartstop.h, or tdchbt.h.
+    in a dict with keys that correspond to the variable names given in the C
+    header files.
     """
 
     def __init__(self, dll_name='tdcbase.dll',
@@ -157,9 +169,6 @@ class QuTau:
         if dll_path is not None:
             os.environ["PATH"] += os.pathsep + dll_path
         self.tdcbase = ct.windll.LoadLibrary(dll_name)
-
-        # Internal attribute for storing a pointer to the C lib's HBT struct
-        self.hbt_ptr = None
 
         # Set argument and return types as defined in header files
 
@@ -592,7 +601,6 @@ class QuTau:
         'channelMask' int: 	Enabled channels, see @ref TDC_enableChannels
         'coincWin' int: 	Coincidence window, see @ref TDC_setCoincidenceWindow
         'expTime' int:     	Output: Exposure time, see @ref TDC_setExposureTime
-        'return_code' int:  Error code
         """
         channelMask = ct.c_int()
         coincWin = ct.c_int()
@@ -758,20 +766,14 @@ class QuTau:
 
         Retrieves the timestamp values of the last n detected events on all
         TDC channels. The buffer size must have been set with
-        @ref TDC_setTimestampBufferSize , otherwise 0 data will be returned.
+        @ref setTimestampBufferSize , otherwise 0 data will be returned.
         @param bool reset      If the data should be cleared after retrieving.
         @return dict of values:
         'timestamps' numpy.array: Timestamps of the last events in base units,
-                          see @ref TDC_getTimebase .
-                          The array must have at least size elements,
-                          see @ref TDC_setTimestampBufferSize .
-                          A NULL pointer is allowed to ignore the data.
+                          see @ref TDC_getTimebase.
         'channels' numpy.array: Numbers of the channels where the events have been
                           detected. Every array element belongs to the timestamp
                           with the same index. Range is 0...7 for channels 1...8.
-                          The array must have at least size elements,
-                          see @ref TDC_setTimestampBufferSize .
-                          A NULL pointer is allowed to ignore the data.
         'valid'          : Number of valid entries in the above arrays.
                           May be less than the buffer size if the buffer has been cleared.
         """
