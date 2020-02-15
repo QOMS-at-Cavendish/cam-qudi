@@ -34,7 +34,6 @@ import pyqtgraph as pg
 
 from core.module import Connector
 from core.configoption import ConfigOption
-from qtwidgets.save_dialog import SaveDialog
 from gui.colordefs import QudiPalettePale as palette
 from gui.guibase import GUIBase
 from qtpy import QtCore
@@ -50,6 +49,22 @@ class HbtSettingsDialog(QtWidgets.QDialog):
         ui_file = os.path.join(this_dir, 'histogram_settings.ui')
         super(HbtSettingsDialog, self).__init__()
         uic.loadUi(ui_file, self)
+
+class SaveDialog(QtWidgets.QDialog):
+    """ Dialog to provide feedback and block GUI while saving """
+    def __init__(self, parent, title="Please wait", text="Saving..."):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setWindowModality(QtCore.Qt.WindowModal)
+        self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+
+        # Dialog layout
+        self.text = QtWidgets.QLabel("<font size='16'>" + text + "</font>")
+        self.hbox = QtWidgets.QHBoxLayout()
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.hbox.addWidget(self.text)
+        self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
+        self.setLayout(self.hbox)
 
 class HbtMainWindow(QtWidgets.QMainWindow):
     """ Create the Main Window based on the *.ui file. """
