@@ -209,13 +209,6 @@ class QuTau:
         self.tdcbase.TDC_configureSyncDivider.argtypes = [ct.c_int, ct.c_bool]
         self.tdcbase.TDC_configureSyncDivider.restype = ct.c_int
 
-        self.tdcbase.TDC_configureApdCooling.argtypes = [ct.c_int, ct.c_int]
-        self.tdcbase.TDC_configureApdCooling.restype = ct.c_int
-
-        self.tdcbase.TDC_configureInternalApds.argtypes = [
-            ct.c_int, ct.c_double, ct.c_double]
-        self.tdcbase.TDC_configureInternalApds.restype = ct.c_int
-
         self.tdcbase.TDC_enableChannels.argtypes = [ct.c_int]
         self.tdcbase.TDC_enableChannels.restype = ct.c_int
 
@@ -240,9 +233,6 @@ class QuTau:
 
         self.tdcbase.TDC_getDeadTime.argtypes = [ct.POINTER(ct.c_int)]
         self.tdcbase.TDC_getDeadTime.restype = ct.c_int
-
-        self.tdcbase.TDC_switchTermination.argtypes = [ct.c_bool]
-        self.tdcbase.TDC_switchTermination.restype = ct.c_int
 
         self.tdcbase.TDC_configureSelftest.argtypes = [
             ct.c_int, ct.c_int, ct.c_int, ct.c_int]
@@ -452,39 +442,6 @@ class QuTau:
             'reconstruct': reconstruct.value
         }
 
-    def configureApdCooling(self, fanSpeed, temp):
-        """
-        Configures parameters for the cooling of the internal APDs if available.
-         This function requires an 1c device, otherwise @ref TDC_OutOfRange is returned.
-         @param int fanSpeed  Fan speed, unknown scale, Range 0 ... 50000
-         @param int temp      Temperature control setpoint, range 0 ... 65535
-                           The temperature scale is nonlinear, some sample points:
-                           @b 0:     -31 C
-                           @b 16384: -25 C
-                           @b 32768: -18 C
-                           @b 65535:   0 C
-        """
-        rc = self.tdcbase.TDC_configureApdCooling(fanSpeed, temp)
-        if rc != 0:
-            raise QuTauError(rc)
-
-    def configureInternalApds(self, apd, bias, thrsh):
-        """
-        Configure APD
-
-        Configures parameters for the internal APDs if available.
-        This function requires an 1c device, otherwise @ref TDC_OutOfRange is 
-            returned.
-        @param int apd    Index of adressed APD, 0 or 1
-        @param int bias   Bias value [V], Range 0 ... 250. Internal resolution 
-            is 61mV.
-        @param float thrsh  Threshold value [V], Range 0 ... 2. Internal 
-            resolution is 0.5mV.
-        """
-        rc = self.tdcbase.TDC_configureInternalApds(apd, bias, thrsh)
-        if rc != 0:
-            raise QuTauError(rc)
-
     def enableChannels(self, channelMask):
         """
          Enable TDC Channels
@@ -614,19 +571,6 @@ class QuTau:
             'expTime': expTime.value
         }
 
-    def switchTermination(self, on):
-        """
-        Switch Input Termination
-
-        Switches the 50 ohm termination of input lines on or off.
-        The function requires an 1a type hardware, otherwise
-        @ref TDC_OutOfRange is returned.
-        @param bool on   Switch on (1) or off (0)
-        """
-        rc = self.tdcbase.TDC_switchTermination(on)
-        if rc != 0:
-            raise QuTauError(rc)
-
     def configureSelftest(self, channelMask, period, burstSize, burstDist):
         """
         Configure Selftest
@@ -746,14 +690,14 @@ class QuTau:
         'updates'   Output: Number of data updates by the device since the last call.
                          Pointer may be NULL.
         """
-        datatype = ct.c_int * 19
+        datatype = ct.c_int * 31
         data = datatype()
         updates = ct.c_int()
         rc = self.tdcbase.TDC_getCoincCounters(data, updates)
         if rc != 0:
             raise QuTauError(rc)
 
-        data_py = np.ctypeslib.as_array(data, shape=19)
+        data_py = np.ctypeslib.as_array(data, shape=31)
 
         return {
             'data': data_py,
