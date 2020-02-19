@@ -282,6 +282,9 @@ class QuTau:
         self.tdcbase.TDC_enableStartStop.argtypes = [ct.c_bool]
         self.tdcbase.TDC_enableStartStop.restype = ct.c_int
 
+        self.tdcbase.TDC_addHistogram.argtypes = [ct.c_int, ct.c_int, ct.c_int]
+        self.tdcbase.TDC_addHistogram.restype = ct.c_int
+
         self.tdcbase.TDC_setHistogramParams.argtypes = [ct.c_int, ct.c_int]
         self.tdcbase.TDC_setHistogramParams.restype = ct.c_int
 
@@ -914,6 +917,25 @@ class QuTau:
             'binWidth': binWidth.value,
             'binCount': binCount.value
         }
+
+    def addHistogram(self, startCh, stopCh, add=True):
+        """
+        Adds or removes a histogram with specified start and stop channels.
+
+        All time differences beween a start and the first following stop event
+        will contribute to the histogram.
+
+        A channel independent histogram that integrates all events is always
+        provided and hasn't to be added, see @ref TDC_getHistogram.
+        @param startCh channel number of the histogram's start channel, Range = 0...20
+        @param stopCh  channel number of the histogram's stop channel, Range = 1...20
+        @param add     add (true) or remove (false) the histogram. If an
+                       existing histogram is added or a missing
+                       histogram is removed, nothing happens.
+        """
+        rc = self.tdcbase.TDC_addHistogram(startCh, stopCh, add)
+        if rc != 0:
+            raise QuTauError(rc)
 
     def clearAllHistograms(self):
         """

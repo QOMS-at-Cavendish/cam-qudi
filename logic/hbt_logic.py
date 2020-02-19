@@ -82,8 +82,12 @@ class HbtLogic(GenericLogic):
         self._save_logic = self.savelogic()
         self._qutau = self.qutau()
 
-        self._qutau.enable_histogram()
+        self._qutau.enable_histogram(histograms=((self.start_channel - 1, 
+                                                  self.stop_channel - 1, 
+                                                  True),))
+
         self._qutau.set_histogram_params(self.bin_width, self.bin_count)
+
         if self.delay > 0:
             self._qutau.set_delays([self.delay])
 
@@ -93,11 +97,11 @@ class HbtLogic(GenericLogic):
 
         # At the moment, the Qutau handles all the histogram acquisition, so
         # just emit update available signal periodically for GUI.
-        self._update_timer = QtCore.QTimer()
+        self._update_timer = QtCore.QTimer()    # pylint: disable=no-member
         self._update_timer.timeout.connect(self.hbt_updated.emit)
 
         # Timer for file size checker (10 sec)
-        self._file_check_timer = QtCore.QTimer()
+        self._file_check_timer = QtCore.QTimer()    # pylint: disable=no-member
         self._file_check_timer.timeout.connect(self._check_file)
         self.started_recording.connect(lambda: self._file_check_timer.start(1e4))
         self.stopped_recording.connect(self._file_check_timer.stop)
@@ -209,6 +213,12 @@ class HbtLogic(GenericLogic):
         if delay is not None:
             self.delay = int(delay)
             self._qutau.set_delays([self.delay])
+
+        # Enable histogram if needed
+        if start_channel is not None or stop_channel is not None:
+            self._qutau.enable_histogram(histograms=((self.start_channel - 1, 
+                                                      self.stop_channel - 1, 
+                                                      True),))
 
     def get_channels(self):
         """ Get list of enabled channels from hardware

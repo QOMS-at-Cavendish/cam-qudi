@@ -206,13 +206,19 @@ class QuTau(Base, SlowCounterInterface):
     # Start-stop histogram functions
     ################################
 
-    def enable_histogram(self, enable=True):
+    def enable_histogram(self, enable=True, histograms=[]):
         """ Enables histogram calculations
 
-        @param bool enable: Enable/disable (True/False)
+        @param bool enable: Enable/disable histogram module (True/False)
+        
+        @param list histograms: List of (startCh, stopCh, enable) lists,
+        specifying which histograms to enable/disable.
         """
         self.qutau.enableStartStop(enable)
         self.startstop_enabled = enable
+
+        for hist in histograms:
+            self.qutau.addHistogram(*hist)
 
     def set_histogram_params(self, bin_width, bin_count):
         """ Sets parameters for the acquired start-stop histogram.
