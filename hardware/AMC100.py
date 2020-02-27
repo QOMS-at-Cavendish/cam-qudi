@@ -8,8 +8,6 @@ Authors
 ---
 John Jarman jcj27@cam.ac.uk
 
-Copyright Nu Quantum Ltd (2020).
-
 This file is part of Qudi.
 
 Qudi is free software: you can redistribute it and/or modify
@@ -39,10 +37,8 @@ from core.util.mutex import Mutex
 
 import functools
 
-# Decorator to check if axis is correct
-
-
 def check_axis(func):
+    """ Decorator that checks if axis is OK """
     @functools.wraps(func)
     def check(self, axis, *args, **kwargs):
         if axis in self.axes:
@@ -311,13 +307,23 @@ class AMC100(Base, PositionerInterface):
         Stop all motion on specified axis.
         @param str axis: Axis to stop
         """
-        pass
+        # Disable closed-loop positioning
+        self._send_request('com.attocube.amc.control.setControlMove',
+                [self._axes[axis], True])
+        
+        # Disable continuous motion
+        self.request('com.attocube.amc.move.setControlContinousFwd',
+                [self._axes[axis], False])
+        self.request('com.attocube.amc.move.setControlContinousBkwd', 
+                [self._axes[axis], False])
 
     def stop_all(self):
         """
         Stop motion on all axes.
         """
-        pass
+        #pylint: disable=no-member
+        for axis in self._axes.keys():
+            self.stop_axis(axis)
 
     def _enable_axes(self):
         """ Enables output on configured axes
