@@ -340,13 +340,13 @@ class StagecontrolGui(GUIBase):
         # Construct move_dict
         move_dict = {}
         if x_pos != '':
-            move_dict['x'] = float(x_pos)
+            move_dict['x'] = float(x_pos)/1e3
 
         if y_pos != '':
-            move_dict['y'] = float(y_pos)
+            move_dict['y'] = float(y_pos)/1e3
 
         if z_pos != '':
-            move_dict['z'] = float(z_pos)
+            move_dict['z'] = float(z_pos)/1e3
 
         self.stagecontrol_logic.move_abs(move_dict)
 
@@ -363,13 +363,13 @@ class StagecontrolGui(GUIBase):
         # Construct move_dict
         move_dict = {}
         if x_pos != '':
-            move_dict['x'] = float(x_pos)
+            move_dict['x'] = float(x_pos)/1e3
 
         if y_pos != '':
-            move_dict['y'] = float(y_pos)
+            move_dict['y'] = float(y_pos)/1e3
 
         if z_pos != '':
-            move_dict['z'] = float(z_pos)
+            move_dict['z'] = float(z_pos)/1e3
 
         self.stagecontrol_logic.move_rel(move_dict)
 
@@ -380,15 +380,15 @@ class StagecontrolGui(GUIBase):
         """ Updates position in GUI when signalled by logic. """
         try:
             if 'x' in pos_dict.keys():
-                self._mw.x_pos.setText("{:7.5f}".format(pos_dict['x']))
+                self._mw.x_pos.setText("{:7.5f}".format(pos_dict['x']*1e3))
             else:
                 self._mw.x_pos.setText("--")
             if 'y' in pos_dict.keys():
-                self._mw.y_pos.setText("{:7.5f}".format(pos_dict['y']))
+                self._mw.y_pos.setText("{:7.5f}".format(pos_dict['y']*1e3))
             else:
                 self._mw.y_pos.setText("--")
             if 'z' in pos_dict.keys():
-                self._mw.z_pos.setText("{:7.5f}".format(pos_dict['z']))
+                self._mw.z_pos.setText("{:7.5f}".format(pos_dict['z']*1e3))
             else:
                 self._mw.z_pos.setText("--")
                 
@@ -420,34 +420,34 @@ class StagecontrolGui(GUIBase):
         z_vel = self._mw.z_vel.text()
 
         if x_vel != '':
-            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
+            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel/1e3))
 
         if y_vel != '':
-            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
+            self.stagecontrol_logic.set_axis_config('y', velocity=float(y_vel/1e3))
 
         if z_vel != '':
-            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel))
+            self.stagecontrol_logic.set_axis_config('z', velocity=float(z_vel/1e3))
 
     @QtCore.Slot()
     def get_velocities(self):
         """ Gets velocities from hardware and displays in boxes"""
         self._mw.x_vel.setText(
-            str(self.stagecontrol_logic.get_axis_config('x', 'velocity')))
+            str(self.stagecontrol_logic.get_axis_config('x', 'velocity')*1e3))
         self._mw.y_vel.setText(
-            str(self.stagecontrol_logic.get_axis_config('y', 'velocity')))
+            str(self.stagecontrol_logic.get_axis_config('y', 'velocity')*1e3))
         self._mw.z_vel.setText(
-            str(self.stagecontrol_logic.get_axis_config('z', 'velocity')))
+            str(self.stagecontrol_logic.get_axis_config('z', 'velocity')*1e3))
 
     @QtCore.Slot(dict)
     def update_velocity(self, velocity_dict):
         """ Updates velocity boxes when signalled by the logic. """
         for axis, velocity in velocity_dict.items():
             if axis == 'x':
-                self._mw.x_vel.setText('{}'.format(velocity))
+                self._mw.x_vel.setText('{}'.format(velocity*1e3))
             elif axis == 'y':
-                self._mw.y_vel.setText('{}'.format(velocity))
+                self._mw.y_vel.setText('{}'.format(velocity*1e3))
             elif axis == 'z':
-                self._mw.z_vel.setText('{}'.format(velocity))
+                self._mw.z_vel.setText('{}'.format(velocity*1e3))
 
     ###########################
     # Slots for saved positions
@@ -471,13 +471,13 @@ class StagecontrolGui(GUIBase):
         # Construct move_dict
         move_dict = {}
         if x is not None and x.text() != '':
-            move_dict['x'] = float(x.text())
+            move_dict['x'] = float(x.text())/1e3
 
         if y is not None and y.text() != '':
-            move_dict['y'] = float(y.text())
+            move_dict['y'] = float(y.text())/1e3
 
         if z is not None and z.text() != '':
-            move_dict['z'] = float(z.text())
+            move_dict['z'] = float(z.text())/1e3
 
         self.stagecontrol_logic.move_abs(move_dict)
 
@@ -572,17 +572,17 @@ class StagecontrolGui(GUIBase):
     def show_settings(self):
         """ Shows settings dialog with latest values from logic """
         preset = self.stagecontrol_logic.preset_velocities
-        self._sd.x_slow_preset_lineEdit.setText(str(preset['slow']['x']))
-        self._sd.y_slow_preset_lineEdit.setText(str(preset['slow']['y']))
-        self._sd.z_slow_preset_lineEdit.setText(str(preset['slow']['z']))
+        self._sd.x_slow_preset_lineEdit.setText(str(preset['slow']['x']*1e3))
+        self._sd.y_slow_preset_lineEdit.setText(str(preset['slow']['y']*1e3))
+        self._sd.z_slow_preset_lineEdit.setText(str(preset['slow']['z']*1e3))
 
-        self._sd.x_med_preset_lineEdit.setText(str(preset['medium']['x']))
-        self._sd.y_med_preset_lineEdit.setText(str(preset['medium']['y']))
-        self._sd.z_med_preset_lineEdit.setText(str(preset['medium']['z']))
+        self._sd.x_med_preset_lineEdit.setText(str(preset['medium']['x']*1e3))
+        self._sd.y_med_preset_lineEdit.setText(str(preset['medium']['y']*1e3))
+        self._sd.z_med_preset_lineEdit.setText(str(preset['medium']['z']*1e3))
 
-        self._sd.x_fast_preset_lineEdit.setText(str(preset['fast']['x']))
-        self._sd.y_fast_preset_lineEdit.setText(str(preset['fast']['y']))
-        self._sd.z_fast_preset_lineEdit.setText(str(preset['fast']['z']))
+        self._sd.x_fast_preset_lineEdit.setText(str(preset['fast']['x']*1e3))
+        self._sd.y_fast_preset_lineEdit.setText(str(preset['fast']['y']*1e3))
+        self._sd.z_fast_preset_lineEdit.setText(str(preset['fast']['z']*1e3))
 
         self._sd.exec()
         
@@ -591,20 +591,20 @@ class StagecontrolGui(GUIBase):
     def update_settings(self):
         """ Updates logic with settings from dialog """
         slow = (
-            float(self._sd.x_slow_preset_lineEdit.text()),
-            float(self._sd.y_slow_preset_lineEdit.text()),
-            float(self._sd.z_slow_preset_lineEdit.text()))
+            float(self._sd.x_slow_preset_lineEdit.text()/1e3),
+            float(self._sd.y_slow_preset_lineEdit.text()/1e3),
+            float(self._sd.z_slow_preset_lineEdit.text()/1e3))
 
         medium = (
-            float(self._sd.x_med_preset_lineEdit.text()),
-            float(self._sd.y_med_preset_lineEdit.text()),
-            float(self._sd.z_med_preset_lineEdit.text()))
+            float(self._sd.x_med_preset_lineEdit.text()/1e3),
+            float(self._sd.y_med_preset_lineEdit.text()/1e3),
+            float(self._sd.z_med_preset_lineEdit.text()/1e3))
         
 
         fast = (
-            float(self._sd.x_fast_preset_lineEdit.text()),
-            float(self._sd.y_fast_preset_lineEdit.text()),
-            float(self._sd.z_fast_preset_lineEdit.text()))
+            float(self._sd.x_fast_preset_lineEdit.text()/1e3),
+            float(self._sd.y_fast_preset_lineEdit.text()/1e3),
+            float(self._sd.z_fast_preset_lineEdit.text()/1e3))
 
         self.stagecontrol_logic.set_preset_values(slow=slow, medium=medium, fast=fast)
         
