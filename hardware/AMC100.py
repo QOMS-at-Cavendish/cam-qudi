@@ -30,7 +30,8 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import socket
 import json
 import random
-from interface.positioner_interface import PositionerInterface, PositionerError
+from interface.positioner_interface import PositionerInterface, \
+    PositionerError, AxisError, AxisConfigError
 from core.module import Base
 from core.configoption import ConfigOption
 from core.util.mutex import Mutex
@@ -92,6 +93,15 @@ class AMC100(Base, PositionerInterface):
     def __init__(self):
         super().__init__()
         self.connection = None
+        self.config_options = (
+            'step_voltage',
+            'frequency',
+            'offset_voltage',
+            'output_enable',
+            'enable_positioning',
+            'target_range',
+            'velocity'
+        )
 
     def on_activate(self):
         """ Activates module.
@@ -230,6 +240,7 @@ class AMC100(Base, PositionerInterface):
         """
         pass
 
+    @check_axis
     def get_axis_config(self, axis, config_option=None):
         """
         Retrieve configuration of specified axis
@@ -242,7 +253,64 @@ class AMC100(Base, PositionerInterface):
 
         Raise AxisConfigError if a config_option is not implemented.
         """
-        pass
+        if config_option == "step_voltage":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlAmplitude",
+                    [self._axes[axis]])
+            return r["result"][1]/1e3
+
+        elif config_option == "frequency":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlFrequency",
+                    [self._axes[axis]])
+            return r["result"][1]
+
+        elif config_option == "offset_voltage":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlFixOutputVoltage",
+                    [self._axes[axis]])
+            return r["result"][1]/1e3
+
+        elif config_option == "output_enable":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlOutput",
+                    [self._axes[axis]])
+            return r["result"][1]
+
+        elif config_option == "enable_positioning":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlMove",
+                    [self._axes[axis]])
+            return r["result"][1]
+
+        elif config_option == "target_range":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlTargetRange",
+                    [self._axes[axis]])
+            return r["result"][1]*1e-9
+
+        elif config_option == "auto_update":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlReferenceAutoUpdate",
+                    [self._axes[axis]])
+            return r["result"][1]
+        
+        elif config_option == "auto_reset":
+            r = self._send_request(
+                    "com.attocube.amc.control.getControlAutoReset",
+                    [self._axes[axis]])
+            return r["result"][1]
+        
+        elif config_option is None:
+            # Return all config options available
+            all_config = {}
+            for opt in self.config_options:
+                all_config[opt] = self.get_axis_config(axis, opt)
+            return all_config
+
+        else:
+            raise AxisConfigError(
+                    "Unsupported config option {}".format(config_option))
 
     def set_axis_config(self, axis, **config):
         """
@@ -256,15 +324,87 @@ class AMC100(Base, PositionerInterface):
 
         set_axis_config('x', frequency=100, step-voltage=20)
 
-        Standardise on the following names for common config options:
-        'frequency': Step frequency (float)
-        'step_voltage': Step voltage (float)
-        'offset_voltage': Offset voltage (float)
-        'mode': Axis mode (string, e.g. 'stp', 'gnd', 'cap' for attocube)
+        Available options:
+        'frequency': Step frequency (Hz) (float)
+        'step_voltage': Step voltage (V) (float)
+        'offset_voltage': Offset voltage (V) (float)
+        'output_enable': Enable output (bool)
+        'enable_positioning': Enable closed-loop positioning (bool)
+        'target_range': Set position range for which 'on_target' status flag
+                is set (m)
+        'auto_update': Automatically update reference position when passed
+        'auto_reset': Automatically reset position to zero when ref position is
+                passed.
+        'velocity': Set V/Hz to achieve a particular velocity in m/sec
 
         Ignore unimplemented configuration options.
         """
-        pass
+        for config_option in config.keys():
+            if config_option == "step_voltage":
+                if (config[config_option] > max(self._step_voltage_range) or
+                        config[config_option] < min(self._step_voltage_range)):
+                    raise AxisConfigError("Step voltage out of range")
+                self._send_request(
+                    "com.attocube.amc.control.setControlAmplitude",
+                    [self._axes[axis], int(config[config_option]*1e3)])
+
+            elif config_option == "frequency":
+                if (config[config_option] > max(self._step_frequency_range) or
+                        config[config_option] < min(self._step_frequency_range)):
+                    raise AxisConfigError("Step frequency out of range")
+                self._send_request(
+                    "com.attocube.amc.control.setControlFrequency",
+                    [self._axes[axis], int(config[config_option])])
+
+            elif config_option == "offset_voltage":
+                self._send_request(
+                    "com.attocube.amc.control.setControlFixOutputVoltage",
+                    [self._axes[axis], int(config[config_option]*1e3)])
+
+            elif config_option == "output_enable":
+                self._send_request(
+                    "com.attocube.amc.control.setControlOutput",
+                    [self._axes[axis], config[config_option]])
+
+            elif config_option == "enable_positioning":
+                self._send_request(
+                    "com.attocube.amc.control.setControlMove",
+                    [self._axes[axis], config[config_option]])
+
+            elif config_option == "target_range":
+                self._send_request(
+                    "com.attocube.amc.control.setControlTargetRange",
+                    [self._axes[axis], int(config[config_option]*1e9)])
+
+            elif config_option == "auto_update":
+                self._send_request(
+                    "com.attocube.amc.control.setControlReferenceAutoUpdate",
+                    [self._axes[axis], config[config_option]])
+            
+            elif config_option == "auto_reset":
+                self._send_request(
+                    "com.attocube.amc.control.setControlAutoReset",
+                    [self._axes[axis], config[config_option]])
+
+            elif config_option == "velocity":
+                # Set V/Hz from a velocity in m/sec (approximate)
+                v = config[config_option]*1e3
+                if v < 0.02:
+                    raise AxisConfigError("Velocity below supported range")
+                if v >= 0.02 and v < 0.1:
+                    # Set frequency between 200 and 2000 Hz, V = 25 V
+                    freq = (((v - 0.02) / (0.1 - 0.02)) + 0.1) * 2000
+                    self.set_axis_config(axis, step_voltage = 25)
+                    self.set_axis_config(axis, frequency = freq)
+                
+                elif v >= 0.1 and v <= 1:
+                    # Set voltage between 25 and 40 V, f = 2000 Hz
+                    volt = (((v - 0.1)/(1 - 0.1)) + 1.66) * 15
+                    self.set_axis_config(axis, step_voltage = volt)
+                    self.set_axis_config(axis, frequency = 2000)
+
+                else:
+                    raise AxisConfigError("Velocity above supported range")
 
     def get_axis_status(self, axis, status=None):
         """
@@ -274,16 +414,34 @@ class AMC100(Base, PositionerInterface):
         @return status: Hardware-dependent status variable.
         @return dict status: Dict of all status variables (if no status specified)
 
-        Standardise on the following names for common status variables:
+        Available status variables:
         'moving' (bool)
-        'end-of-travel' (bool)
+        'end_of_travel' (bool)
 
         The returned dict should contain keys for each available status variable,
         with a boolean value for the state of status flags.
 
         Raise AxisConfigError if status is not implemented.
         """
-        pass
+        if status == "moving":
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusTargetRange",
+                    [self._axes[axis]])
+            return not r["result"][1]
+        
+        elif status == "end_of_travel":
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusEotFwd",
+                    [self._axes[axis]])
+            fwd_eot = r["result"][1]
+
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusEotBkwd",
+                    [self._axes[axis]])
+            
+            rev_eot = r["result"][1]
+
+            return fwd_eot or rev_eot
 
     def get_axis_limits(self, axis):
         """
@@ -300,7 +458,10 @@ class AMC100(Base, PositionerInterface):
         If a limit is not known or implemented for a particular stage, its key
         will not appear in the returned dict.
         """
-        pass
+        return {
+            "step_voltage":self._step_voltage_range,
+            "step_frequency":self._step_frequency_range
+        }
 
     def stop_axis(self, axis):
         """
