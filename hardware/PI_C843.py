@@ -104,9 +104,9 @@ class PI_C843(Base,PositionerInterface):
         """
         try:
             if relative:
-                self.pidevice.MVR(self.axes[axis], position)
+                self.pidevice.MVR(self.axes[axis], position*1e3)
             else:
-                self.pidevice.MOV(self.axes[axis], position)
+                self.pidevice.MOV(self.axes[axis], position*1e3)
         except pipython.GCSError as err:
             if err.val == 5:
                 raise PositionerNotReferenced(err)
@@ -120,7 +120,7 @@ class PI_C843(Base,PositionerInterface):
         """
         try:
             position = self.pidevice.qPOS(self.axes[axis])[self.axes[axis]]
-            return position
+            return position/1e3
         except pipython.GCSError as err:
             raise PositionerError(err)
 
@@ -179,7 +179,7 @@ class PI_C843(Base,PositionerInterface):
         
         elif config_option == 'velocity':
             # Get axis velocity
-            return self.pidevice.qVEL(self.axes[axis])[self.axes[axis]]
+            return self.pidevice.qVEL(self.axes[axis])[self.axes[axis]]/1e3
 
         else:
             raise AxisConfigError('Config option {} unsupported'.format(config_option))
@@ -208,7 +208,7 @@ class PI_C843(Base,PositionerInterface):
         for option, value in config.items():
             if option == 'velocity':
                 # Set axis velocity
-                self.pidevice.VEL(self.axes[axis], value)
+                self.pidevice.VEL(self.axes[axis], value*1e3)
 
     @check_axis
     def get_axis_limits(self, axis):
@@ -217,8 +217,8 @@ class PI_C843(Base,PositionerInterface):
         @param str axis: Query limits on this axis
         @return dict: Dict of limits
         """
-        pos_min = self.pidevice.qTMN(self.axes[axis])[self.axes[axis]]
-        pos_max = self.pidevice.qTMX(self.axes[axis])[self.axes[axis]]
+        pos_min = self.pidevice.qTMN(self.axes[axis])[self.axes[axis]]/1e3
+        pos_max = self.pidevice.qTMX(self.axes[axis])[self.axes[axis]]/1e3
 
         return {'position':(pos_min, pos_max)}
 
