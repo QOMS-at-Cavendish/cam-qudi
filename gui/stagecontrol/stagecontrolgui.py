@@ -420,13 +420,13 @@ class StagecontrolGui(GUIBase):
         z_vel = self._mw.z_vel.text()
 
         if x_vel != '':
-            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel/1e3))
+            self.stagecontrol_logic.set_axis_config('x', velocity=float(x_vel)/1e3)
 
         if y_vel != '':
-            self.stagecontrol_logic.set_axis_config('y', velocity=float(y_vel/1e3))
+            self.stagecontrol_logic.set_axis_config('y', velocity=float(y_vel)/1e3)
 
         if z_vel != '':
-            self.stagecontrol_logic.set_axis_config('z', velocity=float(z_vel/1e3))
+            self.stagecontrol_logic.set_axis_config('z', velocity=float(z_vel)/1e3)
 
     @QtCore.Slot()
     def get_velocities(self):
@@ -591,20 +591,20 @@ class StagecontrolGui(GUIBase):
     def update_settings(self):
         """ Updates logic with settings from dialog """
         slow = (
-            float(self._sd.x_slow_preset_lineEdit.text()/1e3),
-            float(self._sd.y_slow_preset_lineEdit.text()/1e3),
-            float(self._sd.z_slow_preset_lineEdit.text()/1e3))
+            float(self._sd.x_slow_preset_lineEdit.text())/1e3,
+            float(self._sd.y_slow_preset_lineEdit.text())/1e3,
+            float(self._sd.z_slow_preset_lineEdit.text())/1e3)
 
         medium = (
-            float(self._sd.x_med_preset_lineEdit.text()/1e3),
-            float(self._sd.y_med_preset_lineEdit.text()/1e3),
-            float(self._sd.z_med_preset_lineEdit.text()/1e3))
+            float(self._sd.x_med_preset_lineEdit.text())/1e3,
+            float(self._sd.y_med_preset_lineEdit.text())/1e3,
+            float(self._sd.z_med_preset_lineEdit.text())/1e3)
         
 
         fast = (
-            float(self._sd.x_fast_preset_lineEdit.text()/1e3),
-            float(self._sd.y_fast_preset_lineEdit.text()/1e3),
-            float(self._sd.z_fast_preset_lineEdit.text()/1e3))
+            float(self._sd.x_fast_preset_lineEdit.text())/1e3,
+            float(self._sd.y_fast_preset_lineEdit.text())/1e3,
+            float(self._sd.z_fast_preset_lineEdit.text())/1e3)
 
         self.stagecontrol_logic.set_preset_values(slow=slow, medium=medium, fast=fast)
         

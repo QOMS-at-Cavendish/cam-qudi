@@ -61,9 +61,9 @@ class StagecontrolLogic(GenericLogic):
 
     preset_velocities = StatusVar(
             default={
-                'slow': {'x':0.01, 'y':0.01, 'z':0.005},
-                'medium': {'x':0.05, 'y':0.05, 'z':0.005},
-                'fast': {'x':0.5, 'y':0.5, 'z':0.5}
+                'slow': {'x':0.01/1e3, 'y':0.01/1e3, 'z':0.005/1e3},
+                'medium': {'x':0.05/1e3, 'y':0.05/1e3, 'z':0.005/1e3},
+                'fast': {'x':0.5/1e3, 'y':0.5/1e3, 'z':0.5/1e3}
             })
 
     def __init__(self, config, **kwargs):
