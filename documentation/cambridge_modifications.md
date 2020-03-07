@@ -1,14 +1,13 @@
 # AMOP modifications to Qudi {#cambridge-mods}
 
-This page provides a list of modifications by Cambridge to Qudi. Changes can
-also be seen by comparing the branch amop-mods to the upstream master.
+This page provides a list of modifications by Cambridge to Qudi.
 
 ## Additions
 
 ### Stage control chain
 - Add GUI & logic modules for controlling motorised x, y, z stages
 - Add common interface PositionerInterface for hardware to connect to this chain
-- Add hardware modules for ANC-300 and PI-C843 stage controllers
+- Add hardware modules for ANC-300, AMC-100 and PI-C843 stage controllers
 
 ### Time-resolved PL
 - Add hardware module for QuTAU and QuTAG time-tagging units
