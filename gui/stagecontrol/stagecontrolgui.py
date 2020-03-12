@@ -221,7 +221,8 @@ class StagecontrolGui(GUIBase):
 
         # X-axis
         if new_direction[0] == 0 and self.direction[0] != 0:
-            self.stagecontrol_logic.stop_axis('x')
+            if self._mw.continuous.isChecked():
+                self.stagecontrol_logic.stop_axis('x')
 
         elif new_direction[0] == -1 and self.direction[0] != -1:
             self.x_left()
@@ -231,7 +232,8 @@ class StagecontrolGui(GUIBase):
         
         # Y-axis
         if new_direction[1] == 0 and self.direction[1] != 0:
-            self.stagecontrol_logic.stop_axis('y')
+            if self._mw.continuous.isChecked():
+                self.stagecontrol_logic.stop_axis('y')
             
         elif new_direction[1] == -1 and self.direction[1] != -1:
             self.y_down()
@@ -284,7 +286,8 @@ class StagecontrolGui(GUIBase):
     @QtCore.Slot()
     def z_released(self):
         """Z button release callback"""
-        self.stagecontrol_logic.stop_axis('z')
+        if self._mw.continuous.isChecked():
+            self.stagecontrol_logic.stop_axis('z')
 
     #############################
     # Slots for positioning panel

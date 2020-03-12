@@ -36,13 +36,15 @@ from core.module import Base
 from core.configoption import ConfigOption
 from core.util.mutex import Mutex
 
+import numpy as np
+
 import functools
 
 def check_axis(func):
     """ Decorator that checks if axis is OK """
     @functools.wraps(func)
     def check(self, axis, *args, **kwargs):
-        if axis in self.axes:
+        if axis in self._axes:
             return func(self, axis, *args, **kwargs)
         else:
             raise AxisError(
@@ -90,8 +92,8 @@ class AMC100(Base, PositionerInterface):
 
     _hw_lock = Mutex()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.connection = None
         self.config_options = (
             'step_voltage',
@@ -116,6 +118,8 @@ class AMC100(Base, PositionerInterface):
 
         self.connection = socket.create_connection((self._ip_addr, self._port),
                                                     timeout=self._timeout)
+        
+        self.connection_file = self.connection.makefile("rw", newline='\r\n')
 
         self._enable_axes()
 
@@ -128,8 +132,10 @@ class AMC100(Base, PositionerInterface):
         self._disable_axes()
 
         if self.connection is not None:
+            self.connection_file.close()
             self.connection.close()
             self.connection = None
+            self.connection_file = None
 
     def get_axes(self):
         """
@@ -153,6 +159,7 @@ class AMC100(Base, PositionerInterface):
             'model': 'AMC100'
         }
 
+    @check_axis
     def move_steps(self, axis, steps=1):
         """
         Moves a specified number of steps
@@ -162,16 +169,9 @@ class AMC100(Base, PositionerInterface):
         @param str axis: Axis to move
         @param int steps: Number of steps to move (sign indicates direction)
         """
-        if steps > 0:
-            direction = True
-        elif steps < 0:
-            direction = False
-        else:
-            # no-op if steps=0
-            return
-        self._send_message("com.attocube.amc.move.setNSteps",
-                [self._axes[axis], direction, int(steps)])
+        self.set_position(axis, steps*1e-8, True)
 
+    @check_axis
     def start_continuous_motion(self, axis, reverse=False):
         """
         Start continuous motion on the specified axis and direction.
@@ -180,20 +180,12 @@ class AMC100(Base, PositionerInterface):
         @param str axis: Axis to move
         @param bool reverse: Move backwards (in negative direction)
         """
-        # Stop any closed-loop movement in progress
-        self._send_request('com.attocube.amc.control.setControlMove',
-                [self._axes[axis]], False)
         if reverse:
-            self.request('com.attocube.amc.move.setControlContinousFwd',
-                [self._axes[axis], False])
-            self.request('com.attocube.amc.move.setControlContinousBkwd', 
-                [self._axes[axis], True])
+            self.set_position(axis, -1e7)
         else:
-            self._send_request('com.attocube.amc.move.setControlContinousBkwd',
-                [self._axes[axis], False])
-            self._send_request('com.attocube.amc.move.setControlContinousFwd',
-                [self._axes[axis], True])
+            self.set_position(axis, 1e7)
 
+    @check_axis
     def set_position(self, axis, position, relative=False):
         """
         Move to specified position.
@@ -208,7 +200,7 @@ class AMC100(Base, PositionerInterface):
         """
         if relative:
             # Add position to current position if relative move needed
-            current_pos = self.get_position(self._axes[axis])
+            current_pos = self.get_position(axis)
             position += current_pos
 
         # Set command position
@@ -219,6 +211,7 @@ class AMC100(Base, PositionerInterface):
         self._send_request('com.attocube.amc.control.setControlMove',
                 [self._axes[axis], True])
 
+    @check_axis
     def get_position(self, axis):
         """
         Get current position.
@@ -230,8 +223,13 @@ class AMC100(Base, PositionerInterface):
         """
         response = self._send_request('com.attocube.amc.move.getPosition',
                 [self._axes[axis]])
-        return response['result'][1]*1e-9
+        try:
+            pos = response['result'][1]*1e-9
+        except IndexError:
+            pos = 0
+        return pos
 
+    @check_axis
     def reference_axis(self, axis):
         """
         Move axis to reference position/home position (if available)
@@ -312,6 +310,7 @@ class AMC100(Base, PositionerInterface):
             raise AxisConfigError(
                     "Unsupported config option {}".format(config_option))
 
+    @check_axis
     def set_axis_config(self, axis, **config):
         """
         Set configuration of specified axis
@@ -341,25 +340,26 @@ class AMC100(Base, PositionerInterface):
         """
         for config_option in config.keys():
             if config_option == "step_voltage":
-                if (config[config_option] > max(self._step_voltage_range) or
-                        config[config_option] < min(self._step_voltage_range)):
+                if (config[config_option] > max(self._step_voltage_range[axis]) or
+                        config[config_option] < min(self._step_voltage_range[axis])):
                     raise AxisConfigError("Step voltage out of range")
                 self._send_request(
                     "com.attocube.amc.control.setControlAmplitude",
                     [self._axes[axis], int(config[config_option]*1e3)])
 
             elif config_option == "frequency":
-                if (config[config_option] > max(self._step_frequency_range) or
-                        config[config_option] < min(self._step_frequency_range)):
+                if (config[config_option] > max(self._step_frequency_range[axis]) or
+                        config[config_option] < min(self._step_frequency_range[axis])):
                     raise AxisConfigError("Step frequency out of range")
                 self._send_request(
                     "com.attocube.amc.control.setControlFrequency",
                     [self._axes[axis], int(config[config_option])])
 
             elif config_option == "offset_voltage":
-                self._send_request(
-                    "com.attocube.amc.control.setControlFixOutputVoltage",
-                    [self._axes[axis], int(config[config_option]*1e3)])
+                #self._send_request(
+                #    "com.attocube.amc.control.setControlFixOutputVoltage",
+                #    [self._axes[axis], int(config[config_option]*1e3)])
+                pass
 
             elif config_option == "output_enable":
                 self._send_request(
@@ -393,7 +393,7 @@ class AMC100(Base, PositionerInterface):
                     raise AxisConfigError("Velocity below supported range")
                 if v >= 0.02 and v < 0.1:
                     # Set frequency between 200 and 2000 Hz, V = 25 V
-                    freq = (((v - 0.02) / (0.1 - 0.02)) + 0.1) * 2000
+                    freq = (((v - 0.02) / (0.1 - 0.02)) + 0.1) * 1000
                     self.set_axis_config(axis, step_voltage = 25)
                     self.set_axis_config(axis, frequency = freq)
                 
@@ -401,11 +401,12 @@ class AMC100(Base, PositionerInterface):
                     # Set voltage between 25 and 40 V, f = 2000 Hz
                     volt = (((v - 0.1)/(1 - 0.1)) + 1.66) * 15
                     self.set_axis_config(axis, step_voltage = volt)
-                    self.set_axis_config(axis, frequency = 2000)
+                    self.set_axis_config(axis, frequency = 1000)
 
                 else:
                     raise AxisConfigError("Velocity above supported range")
 
+    @check_axis
     def get_axis_status(self, axis, status=None):
         """
         Get status of specified axis.
@@ -443,6 +444,13 @@ class AMC100(Base, PositionerInterface):
 
             return fwd_eot or rev_eot
 
+        elif status == "on_target":
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusTargetRange",
+                    [self._axes[axis]])
+            return r["result"][1]
+
+    @check_axis
     def get_axis_limits(self, axis):
         """
         Get limits for specified axis.
@@ -463,20 +471,17 @@ class AMC100(Base, PositionerInterface):
             "step_frequency":self._step_frequency_range
         }
 
+    @check_axis
     def stop_axis(self, axis):
         """
         Stop all motion on specified axis.
         @param str axis: Axis to stop
         """
         # Disable closed-loop positioning
-        self._send_request('com.attocube.amc.control.setControlMove',
-                [self._axes[axis], True])
-        
-        # Disable continuous motion
-        self.request('com.attocube.amc.move.setControlContinousFwd',
-                [self._axes[axis], False])
-        self.request('com.attocube.amc.move.setControlContinousBkwd', 
-                [self._axes[axis], False])
+        #self._send_request('com.attocube.amc.control.setControlMove',
+        #        [self._axes[axis], False],
+        #        await_response=False)
+        self.set_position(axis, 0, True)
 
     def stop_all(self):
         """
@@ -518,31 +523,22 @@ class AMC100(Base, PositionerInterface):
         """
         response= None
 
+        msg_id = np.random.randint(0, 10000)
+
         request= {
             'jsonrpc': '2.0',
             'method': method,
-            'id': 0
+            'id': msg_id
         }
         if params is not None:
             request['params']= params
         with self._hw_lock:
-            with self.connection.makefile("rw", newline='\r\n') as f:
-                f.write(json.dumps(request))
-                f.flush()
-                if await_response:
-                    response= json.loads(f.readline())
-                    err= response['result'][0]
-                    if err != 0:
-                        # Translate error and raise exception
-                        error_request= {
-                            'jsonrpc': '2.0',
-                            'method': 'com.attocube.system.errorNumberToString',
-                            'params': [0, err]
-                        }
-                        f.write(json.dumps(error_request))
-                        f.flush()
-                        err_response= json.loads(f.readline())
-                        raise PositionerError("Hardware error {}: {}".format(
-                            err, err_response['result'][0]))
+            self.connection_file.write(json.dumps(request))
+            self.connection_file.flush()
+            if await_response:
+                response = json.loads(self.connection_file.readline())
+                err = response['result'][0]
+                if err != 0:
+                    raise PositionerError("Hardware error {}".format(err))
 
         return response
