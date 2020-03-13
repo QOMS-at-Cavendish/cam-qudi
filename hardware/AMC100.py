@@ -89,6 +89,22 @@ class AMC100(Base, PositionerInterface):
                                              'z': [20, 1000]
                                          },
                                          missing='warn')
+    
+    _position_range = ConfigOption('position_range',
+                                    default={
+                                        'x': [-1e-2, 1e-2],
+                                        'y': [-1e-2, 1e-2],
+                                        'z': [-2.5e-3, 2.5e-3]
+                                    },
+                                    missing='warn')
+
+    _step_size = ConfigOption('step_size',
+                                default={
+                                    'x':1e-7,
+                                    'y':1e-7,
+                                    'z':5e-8
+                                },
+                                missing='warn')
 
     _hw_lock = Mutex()
 
@@ -169,7 +185,7 @@ class AMC100(Base, PositionerInterface):
         @param str axis: Axis to move
         @param int steps: Number of steps to move (sign indicates direction)
         """
-        self.set_position(axis, steps*1e-8, True)
+        self.set_position(axis, steps*self._step_size[axis], True)
 
     @check_axis
     def start_continuous_motion(self, axis, reverse=False):
@@ -181,9 +197,9 @@ class AMC100(Base, PositionerInterface):
         @param bool reverse: Move backwards (in negative direction)
         """
         if reverse:
-            self.set_position(axis, -1e7)
+            self.set_position(axis, min(self._position_range[axis]))
         else:
-            self.set_position(axis, 1e7)
+            self.set_position(axis, max(self._position_range[axis]))
 
     @check_axis
     def set_position(self, axis, position, relative=False):
@@ -390,7 +406,7 @@ class AMC100(Base, PositionerInterface):
                 # Set V/Hz from a velocity in m/sec (approximate)
                 v = config[config_option]*1e3
                 if v < 0.02:
-                    raise AxisConfigError("Velocity below supported range")
+                    raise AxisConfigError("Velocity below supported range (min 0.02)")
                 if v >= 0.02 and v < 0.1:
                     # Set frequency between 200 and 2000 Hz, V = 25 V
                     freq = (((v - 0.02) / (0.1 - 0.02)) + 0.1) * 1000
@@ -404,7 +420,7 @@ class AMC100(Base, PositionerInterface):
                     self.set_axis_config(axis, frequency = 1000)
 
                 else:
-                    raise AxisConfigError("Velocity above supported range")
+                    raise AxisConfigError("Velocity above supported range (max 1)")
 
     @check_axis
     def get_axis_status(self, axis, status=None):
