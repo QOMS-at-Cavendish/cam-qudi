@@ -41,7 +41,13 @@ We have placed this config under the `hardware:` heading because it is a hardwar
 
 The next heading is `pi_c843`, which is a name for the module. Any name can be used here: it will appear in the GUI, and is also used to reference the module when connecting to it, but has no special significance.
 
-The first definition is `module.Class: 'PI_C843.PI_C843'`. This defines the actual Python class that contains the module's functions. The first half of this is the name of the file containing the class (without the `.py` extension), and the second half is the name of the class. In this case, the file is `PI_C843.py` and the class is called `PI_C843`, so we specify `PI_C843.PI_C843`. Note that the class name and filename are not always the same.
+The first definition is
+
+```yaml
+module.Class: 'PI_C843.PI_C843'
+```
+
+This defines the actual Python class that contains the module's functions. The first half of this is the name of the file containing the class (without the `.py` extension), and the second half is the name of the class. In this case, the file is `PI_C843.py` and the class is called `PI_C843`, so we specify `PI_C843.PI_C843`. Note that the class name and filename are not always the same.
 
 The following definitions, `port:` and `axes:`, are configuration options for the module. You should refer to the module itself to find out what these do. Note that Python syntax is accepted here for passing lists and dicts as options.
 
