@@ -55,18 +55,35 @@ def check_axis(func):
 class AMC100(Base, PositionerInterface):
     """
     Attocube AMC-100 stepper class
-    Config parameters:
-    - address: string, IP address of AMC-100 controller
-    - voltage_range: dict, Voltage range [min,max] for each axis
-    - frequency_range: dict, Frequency range [min,max] for each axis
-    Example config:
+    ===
+
+    Config parameters
+    ---
+
+    - address (string): IP address of AMC-100 controller
+    - axes (dict): string:int pairs mapping axis names to physical axes
+    - voltage_range (dict): Voltage range [min,max] for each axis
+    - step_frequency_range (dict): Frequency range [min,max] for each axis
+    - position_range (dict): Position range [min, max] for each axis
+    - step_size: (dict): single step size in meters for each axis
+
+    Example config
+    ---
 
     attocube:
-        module.Class: 'ANC300_serial.AttoCubeStepper'
+        module.Class: 'AMC100.AMC100'
         address: '192.168.1.1'
         axes: {'x':0,'y':1,'z':2}
         step_voltage_range: {'x':[0,60], 'y':[0,60], 'z':[0,60]}
-        frequency_range: {'x':[0,1000], 'y':[0,1000], 'z':[0,1000]}
+        step_frequency_range: {'x':[0,1000], 'y':[0,1000], 'z':[0,1000]}
+
+    Implementation notes
+    ---
+    
+    The Attocube controller seems to freeze temporarily if it is given 
+    closed-loop commands after recently servicing an open-loop command, and 
+    vice-versa. Therefore, things are mostly implemented as closed-loop 
+    'set position' commands.
     """
     # pylint: disable=unsubscriptable-object
 
@@ -106,21 +123,29 @@ class AMC100(Base, PositionerInterface):
                                 },
                                 missing='warn')
 
-    _hw_lock = Mutex()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.connection = None
-        self.config_options = (
+    config_options = (
             'step_voltage',
             'frequency',
             'offset_voltage',
             'output_enable',
             'enable_positioning',
             'target_range',
+            "eot_output_deactivate",
             'velocity'
         )
 
+    status_vars = (
+            'on_target',
+            'eot_fwd',
+            'eot_bkwd'
+        )
+
+    _hw_lock = Mutex()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.connection = None
+        
     def on_activate(self):
         """ Activates module.
         Tasks during activation:
@@ -134,8 +159,6 @@ class AMC100(Base, PositionerInterface):
 
         self.connection = socket.create_connection((self._ip_addr, self._port),
                                                     timeout=self._timeout)
-        
-        self.connection_file = self.connection.makefile("rw", newline='\r\n')
 
         self._enable_axes()
 
@@ -148,10 +171,8 @@ class AMC100(Base, PositionerInterface):
         self._disable_axes()
 
         if self.connection is not None:
-            self.connection_file.close()
             self.connection.close()
             self.connection = None
-            self.connection_file = None
 
     def get_axes(self):
         """
@@ -218,6 +239,9 @@ class AMC100(Base, PositionerInterface):
             # Add position to current position if relative move needed
             current_pos = self.get_position(axis)
             position += current_pos
+        
+        if not self._output_enabled:
+            self._enable_axes()
 
         # Set command position
         self._send_request('com.attocube.amc.move.setControlTargetPosition',
@@ -241,8 +265,9 @@ class AMC100(Base, PositionerInterface):
                 [self._axes[axis]])
         try:
             pos = response['result'][1]*1e-9
-        except IndexError:
-            pos = 0
+        except IndexError as err:
+            raise PositionerError('AMC-100 communication error', err)
+        
         return pos
 
     @check_axis
@@ -372,9 +397,9 @@ class AMC100(Base, PositionerInterface):
                     [self._axes[axis], int(config[config_option])])
 
             elif config_option == "offset_voltage":
-                #self._send_request(
-                #    "com.attocube.amc.control.setControlFixOutputVoltage",
-                #    [self._axes[axis], int(config[config_option]*1e3)])
+                self._send_request(
+                    "com.attocube.amc.control.setControlFixOutputVoltage",
+                    [self._axes[axis], int(config[config_option]*1e3)])
                 pass
 
             elif config_option == "output_enable":
@@ -400,6 +425,11 @@ class AMC100(Base, PositionerInterface):
             elif config_option == "auto_reset":
                 self._send_request(
                     "com.attocube.amc.control.setControlAutoReset",
+                    [self._axes[axis], config[config_option]])
+
+            elif config_option == "eot_output_deactivate":
+                self._send_request(
+                    "com.attocube.amc.move.setControlEotOutputDeactive", 
                     [self._axes[axis], config[config_option]])
 
             elif config_option == "velocity":
@@ -432,39 +462,43 @@ class AMC100(Base, PositionerInterface):
         @return dict status: Dict of all status variables (if no status specified)
 
         Available status variables:
-        'moving' (bool)
-        'end_of_travel' (bool)
+        'on_target' (bool) - On closed-loop target
+        'eot_fwd' (bool) - End of travel (forward direction)
+        'eot_bkwd' (bool) - End of travel (reverse direction)
 
         The returned dict should contain keys for each available status variable,
         with a boolean value for the state of status flags.
 
         Raise AxisConfigError if status is not implemented.
         """
-        if status == "moving":
-            r = self._send_request(
-                    "com.attocube.amc.status.getStatusTargetRange",
-                    [self._axes[axis]])
-            return not r["result"][1]
-        
-        elif status == "end_of_travel":
-            r = self._send_request(
-                    "com.attocube.amc.status.getStatusEotFwd",
-                    [self._axes[axis]])
-            fwd_eot = r["result"][1]
 
-            r = self._send_request(
-                    "com.attocube.amc.status.getStatusEotBkwd",
-                    [self._axes[axis]])
-            
-            rev_eot = r["result"][1]
-
-            return fwd_eot or rev_eot
-
-        elif status == "on_target":
+        if status == "on_target":
             r = self._send_request(
                     "com.attocube.amc.status.getStatusTargetRange",
                     [self._axes[axis]])
             return r["result"][1]
+        
+        elif status == "eot_fwd":
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusEotFwd",
+                    [self._axes[axis]])
+            return r["result"][1]
+
+        elif status == "eot_bkwd":
+            r = self._send_request(
+                    "com.attocube.amc.status.getStatusEotBkwd",
+                    [self._axes[axis]])
+            return r["result"][1]
+        
+        elif status is None:
+            # Return all status variables available
+            all_status = {}
+            for stat in self.status_vars:
+                all_status[stat] = self.get_axis_status(axis, stat)
+            return all_status
+
+        else:
+            raise AxisConfigError("Status variable {} not implemented".format(status))
 
     @check_axis
     def get_axis_limits(self, axis):
@@ -493,19 +527,13 @@ class AMC100(Base, PositionerInterface):
         Stop all motion on specified axis.
         @param str axis: Axis to stop
         """
-        # Disable closed-loop positioning
-        #self._send_request('com.attocube.amc.control.setControlMove',
-        #        [self._axes[axis], False],
-        #        await_response=False)
         self.set_position(axis, 0, True)
 
     def stop_all(self):
         """
         Stop motion on all axes.
         """
-        #pylint: disable=no-member
-        for axis in self._axes.keys():
-            self.stop_axis(axis)
+        self._disable_axes()
 
     def _enable_axes(self):
         """ Enables output on configured axes
@@ -514,6 +542,8 @@ class AMC100(Base, PositionerInterface):
         for axis in self._axes.values():
             self._send_request('com.attocube.amc.control.setControlOutput',
                 [axis, True])
+        
+        self._output_enabled = True
 
     def _disable_axes(self):
         """ Disables output on configured axes
@@ -522,39 +552,40 @@ class AMC100(Base, PositionerInterface):
         for axis in self._axes.items():
             self._send_request('com.attocube.amc.control.setControlOutput',
                 [axis, False])
+        
+        self._output_enabled = False
 
-    def _send_request(self, method, params=None, await_response=True):
+    def _send_request(self, method, params=None):
         """ Sends message on the socket to the Attocube controller.
-        By default, block and await a response from the Attocube.
+        Block and await a response from the Attocube.
 
         @param method (str): Command
 
         @param params (list): Parameters (optional)
 
-        @param await_response (bool): Whether to wait for a response (optional,
-        default True)
-
-        @return dict containing parsed JSON data received as response, or
-        None (if await_response is False).
+        @return dict containing parsed JSON data received as response
         """
-        response= None
+        response = None
 
-        msg_id = np.random.randint(0, 10000)
-
-        request= {
+        request = {
             'jsonrpc': '2.0',
             'method': method,
-            'id': msg_id
+            'id': 0
         }
+
         if params is not None:
-            request['params']= params
+            request['params'] = params
+        
         with self._hw_lock:
-            self.connection_file.write(json.dumps(request))
-            self.connection_file.flush()
-            if await_response:
-                response = json.loads(self.connection_file.readline())
-                err = response['result'][0]
-                if err != 0:
-                    raise PositionerError("Hardware error {}".format(err))
+            try:
+                with self.connection.makefile("rw", newline='\r\n') as f:
+                    f.write(json.dumps(request))
+                    f.flush()
+                    response = json.loads(f.readline())
+                    err = response['result'][0]
+                    if err != 0:
+                        raise PositionerError("Hardware error {}".format(err))
+            except (TimeoutError, KeyError, IndexError) as error:
+                raise PositionerError(error)
 
         return response

@@ -270,7 +270,6 @@ class StagecontrolLogic(GenericLogic):
     def _stop_axis(self, axis):
         """ Internal method to stop axis. Slot for sigStopAxis"""
         self.stage_hw.stop_axis(axis)
-        self.stage_hw.set_axis_config(axis, offset_voltage=0)
 
     ##################
     # Position polling
