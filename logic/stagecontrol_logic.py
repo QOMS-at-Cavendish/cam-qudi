@@ -305,9 +305,9 @@ class StagecontrolLogic(GenericLogic):
                 if self.on_target:
                     self.on_target = False
 
-        except PositionerError:
+        except PositionerError as err:
             # Ignore hardware errors.
-            pass
+            self.log.debug("Error while polling: {}".format(err))
 
         self.sigPositionUpdated.emit(pos_dict)
         QtCore.QTimer.singleShot(self.poll_interval, self._poll_position)
