@@ -1831,11 +1831,11 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                 if self._odmr_pulser_daq_task:
                     differential_data = np.zeros((self.oversampling * length, ), dtype=np.float64)
 
-                    differential_data += real_data[1::2]
-                    differential_data -= real_data[::2]
-                    differential_data = np.divide(differential_data, real_data[::2],
+                    differential_data += real_data[::2]
+                    differential_data -= real_data[1::2]
+                    differential_data = np.divide(differential_data, real_data[1::2],
                                                   np.zeros_like(differential_data),
-                                                  where=real_data[::2] != 0)
+                                                  where=real_data[1::2] != 0)
 
                     all_data[0] = np.median(np.reshape(differential_data,
                                                        (-1, self.oversampling)),
