@@ -196,5 +196,4 @@ class AomControlLogic(GenericLogic):
     @setpoint.setter
     def setpoint(self, val):
         volts = val / self.photodiode_factor
-        if 0 <= self.volt_range[0] and volts <= self.volt_range[1]:
-            self.pid.setpoint = volts
+        self.pid.setpoint = volts
