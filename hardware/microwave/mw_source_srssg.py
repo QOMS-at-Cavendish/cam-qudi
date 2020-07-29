@@ -40,11 +40,15 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
         module.Class: 'microwave.mw_source_srssg.MicrowaveSRSSG'
         gpib_address: 'GPIB0::12::INSTR'
         gpib_timeout: 10
+        max_power: 10 #dBm
 
     """
 
     _gpib_address = ConfigOption('gpib_address', missing='error')
     _gpib_timeout = ConfigOption('gpib_timeout', 10, missing='warn')
+
+    # Max power is often limited by the amp, so use a config option with a conservative figure
+    _max_power = ConfigOption('max_power', 0, missing='warn')
 
     _internal_mode = 'cw'   # list and sweep might also be possible, but start
                             # always with cw
@@ -139,7 +143,7 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
                            'be wrong!'.format(self._MODEL))
 
         limits.min_power = -110 # in dBm
-        limits.max_power = 16.5 # in dBm
+        limits.max_power = self._max_power
 
         # FIXME: Not quite sure about this:
         limits.list_minstep = 1e-6                      # in Hz
@@ -464,8 +468,11 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._write('AMPR {0:f}'.format(power))
-        return 0
+        if power <= self.get_limits().max_power and power >= self.get_limits().min_power:
+            self._write('AMPR {0:f}'.format(power))
+            return 0
+        else:
+            return -1
 
     def set_frequency(self, freq=0.):
         """ Sets the frequency of the microwave output.
