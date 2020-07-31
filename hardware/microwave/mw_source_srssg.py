@@ -40,11 +40,15 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
         module.Class: 'microwave.mw_source_srssg.MicrowaveSRSSG'
         gpib_address: 'GPIB0::12::INSTR'
         gpib_timeout: 10
+        max_power: 10 #dBm
 
     """
 
     _gpib_address = ConfigOption('gpib_address', missing='error')
     _gpib_timeout = ConfigOption('gpib_timeout', 10, missing='warn')
+
+    # Max power is often limited by the amp, so use a config option with a conservative figure
+    _max_power = ConfigOption('max_power', 0, missing='warn')
 
     _internal_mode = 'cw'   # list and sweep might also be possible, but start
                             # always with cw
@@ -132,12 +136,14 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
             limits.max_frequency = 4.050e9
         elif self._MODEL == 'SG396':
             limits.max_frequency = 6.075e9
+        elif self._MODEL == 'SG386':
+            limits.max_frequency = 6e9
         else:
             self.log.error('Model brand "{0}" unknown, hardware limits may '
                            'be wrong!'.format(self._MODEL))
 
         limits.min_power = -110 # in dBm
-        limits.max_power = 16.5 # in dBm
+        limits.max_power = self._max_power
 
         # FIXME: Not quite sure about this:
         limits.list_minstep = 1e-6                      # in Hz
@@ -332,7 +338,7 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
         curr_freq = self.get_frequency()
         curr_power = self.get_power()
 
-        return curr_freq, curr_power, self._internal_mode
+        return frequency, curr_power, self._internal_mode
 
     def reset_listpos(self):
         """ Reset of MW List Mode position to start from first given frequency
@@ -462,8 +468,11 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._write('AMPR {0:f}'.format(power))
-        return 0
+        if power <= self.get_limits().max_power and power >= self.get_limits().min_power:
+            self._write('AMPR {0:f}'.format(power))
+            return 0
+        else:
+            return -1
 
     def set_frequency(self, freq=0.):
         """ Sets the frequency of the microwave output.
