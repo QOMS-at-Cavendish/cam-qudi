@@ -700,5 +700,5 @@ class SaveLogic(GenericLogic):
 
     @file_tag.setter
     def file_tag(self, val):
-        self._file_tag = str(val)
+        self._file_tag = str(val).replace(' ', '_')
         self.log.info("Set file tag to {}".format(val))
