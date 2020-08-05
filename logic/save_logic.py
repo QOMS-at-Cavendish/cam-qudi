@@ -613,7 +613,7 @@ class SaveLogic(GenericLogic):
 
         return current_dir
 
-    def get_filename(self, filelabel=None, timestamp=None):
+    def get_filename(self, filelabel=None, timestamp=None, extension='.dat'):
         """
         Returns a standard format filename.
 
@@ -643,7 +643,7 @@ class SaveLogic(GenericLogic):
         if timestamp is None:
             timestamp = datetime.datetime.now()
 
-        return timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
+        return timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + extension)
 
     def get_path_for_module(self, module_name):
         """

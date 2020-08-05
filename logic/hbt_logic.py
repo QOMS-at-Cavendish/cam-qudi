@@ -245,13 +245,8 @@ class HbtLogic(GenericLogic):
             return
 
         path = self._save_logic.get_path_for_module('HBT')
-        if os.path.exists(os.path.join(path, 'raw_count_data')):
-            i = 1
-            while os.path.exists(os.path.join(path, 'raw_count_data_{}'.format(i))):
-                i += 1
-            self.filename = os.path.join(path, 'raw_count_data_{}'.format(i))
-        else:
-            self.filename = os.path.join(path, 'raw_count_data')
+        filename = self._save_logic.get_filename(extension='.timetag')
+        self.filename = os.path.join(path, filename)
 
         self._qutau.record_timestamps(self.filename)
 
