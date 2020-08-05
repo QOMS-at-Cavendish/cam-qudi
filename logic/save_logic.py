@@ -176,6 +176,9 @@ class SaveLogic(GenericLogic):
         # name of active POI, default to empty string
         self.active_poi_name = ''
 
+        self._file_tag = None
+        self.notes = None
+
         # Some default variables concerning the operating system:
         self.os_system = None
 
@@ -404,15 +407,9 @@ class SaveLogic(GenericLogic):
             self.log.info('Custom filepath does not exist. Created directory "{0}"'
                           ''.format(filepath))
 
-        # create filelabel if none has been passed
-        if filelabel is None:
-            filelabel = module_name
-        if self.active_poi_name != '':
-            filelabel = self.active_poi_name.replace(' ', '_') + '_' + filelabel
-
         # determine proper unique filename to save if none has been passed
         if filename is None:
-            filename = timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
+            filename = self.get_filename(filelabel, timestamp)
 
         # Check format specifier.
         if not isinstance(fmt, str) and len(fmt) != len(data):
@@ -424,10 +421,14 @@ class SaveLogic(GenericLogic):
         # Create header string for the file
         header = 'Saved Data from the class {0} on {1}.\n' \
                  ''.format(module_name, timestamp.strftime('%d.%m.%Y at %Hh%Mm%Ss'))
+        if self._file_tag != None:
+            header += '{}\n'.format(self._file_tag)
         header += '\nParameters:\n===========\n\n'
         # Include the active POI name (if not empty) as a parameter in the header
         if self.active_poi_name != '':
             header += 'Measured at POI: {0}\n'.format(self.active_poi_name)
+        if self.notes != None:
+            header += 'Notes: {}\n'.format(self.notes)
         # add the parameters if specified:
         if parameters is not None:
             # check whether the format for the parameters have a dict type:
@@ -612,6 +613,38 @@ class SaveLogic(GenericLogic):
 
         return current_dir
 
+    def get_filename(self, filelabel=None, timestamp=None):
+        """
+        Returns a standard format filename.
+
+        @param str filelabel: Label for file. If omitted, includes the calling
+            module's name automatically.
+        @param datetime.datetime timestamp: Time-stamp to use for generating
+            the file name. If omitted, use the current time.
+        """
+        if filelabel is None:
+            # try to trace back the functioncall to the class which was calling it.
+            try:
+                frm = inspect.stack()[1]
+                # this will get the object, which called the save_data function.
+                mod = inspect.getmodule(frm[0])
+                # that will extract the name of the class.
+                module_name = mod.__name__.split('.')[-1]
+            except:
+                # Sometimes it is not possible to get the object which called the save_data function
+                # (such as when calling this from the console).
+                module_name = 'UNSPECIFIED'
+            filelabel = module_name
+        if self.active_poi_name != '':
+            filelabel = self.active_poi_name.replace(' ', '_') + '_' + filelabel
+        if self._file_tag != None:
+            filelabel = '{}_'.format(self._file_tag.replace(' ', '_')) + filelabel
+
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+
+        return timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
+
     def get_path_for_module(self, module_name):
         """
         Method that creates a path for 'module_name' where data are stored.
@@ -661,3 +694,11 @@ class SaveLogic(GenericLogic):
         self._additional_parameters.pop(key, None)
         return
 
+    @property
+    def file_tag(self):
+        return self._file_tag
+
+    @file_tag.setter
+    def file_tag(self, val):
+        self._file_tag = val
+        self.log.info("Set file tag to {}".format(val))
