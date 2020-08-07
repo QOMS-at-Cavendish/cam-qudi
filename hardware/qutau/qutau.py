@@ -407,9 +407,9 @@ class QuTau(Base, SlowCounterInterface):
             for sample in range(samples):
                 # Get data using qutau polling thread
                 raw_countdata = self.count_poller.get_counts()
-                for channel in self.enabled_channels:
+                for num, channel in enumerate(self.enabled_channels):
                     # Restrict to enabled channels only and convert to cps
-                    data[channel-1, sample] = raw_countdata[channel-1] * \
+                    data[num, sample] = raw_countdata[channel-1] * \
                         self.clock_frequency
 
         except TimeoutError:
