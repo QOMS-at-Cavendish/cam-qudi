@@ -218,6 +218,7 @@ class QuTau(Base, SlowCounterInterface):
         self.startstop_enabled = enable
 
         for hist in histograms:
+            self.log.debug('Adding histogram {}'.format(hist))
             self.qutau.addHistogram(*hist)
 
     def set_histogram_params(self, bin_width, bin_count):
