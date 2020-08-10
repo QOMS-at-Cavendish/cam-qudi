@@ -105,7 +105,7 @@ class SlowcounterScannerInterfuse(GenericLogic, ConfocalScannerInterface):
             # First call clears buffer, second waits for new counts
             self._counter_hw.get_counter()
             counts = self._counter_hw.get_counter()
-            count_data[i, :] = counts[0, :]
+            count_data[i, :] = counts[:, 0]
         
         return count_data
     
