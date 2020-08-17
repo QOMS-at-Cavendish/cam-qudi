@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>936</width>
-    <height>545</height>
+    <width>1120</width>
+    <height>597</height>
    </rect>
   </property>
   <property name="contextMenuPolicy">
@@ -213,8 +213,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>936</width>
-     <height>18</height>
+     <width>1120</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -245,14 +245,22 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_run_stop"/>
-   <addaction name="action_resume_odmr"/>
+   <addaction name="action_start"/>
+   <addaction name="action_stop"/>
+   <addaction name="action_clear"/>
+   <addaction name="separator"/>
+   <addaction name="action_Save"/>
+   <addaction name="separator"/>
+   <addaction name="action_toggle_cw"/>
   </widget>
   <widget class="QDockWidget" name="odmr_control_DockWidget">
    <property name="enabled">
@@ -731,30 +739,6 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QToolBar" name="save_ToolBar">
-   <property name="windowTitle">
-    <string>toolBar_2</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_Save"/>
-  </widget>
-  <widget class="QToolBar" name="cw_ToolBar">
-   <property name="windowTitle">
-    <string>toolBar_2</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_toggle_cw"/>
-  </widget>
   <action name="action_Settings">
    <property name="icon">
     <iconset>
@@ -785,9 +769,9 @@
     <string>&amp;Close</string>
    </property>
   </action>
-  <action name="action_run_stop">
+  <action name="action_start">
    <property name="checkable">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="icon">
     <iconset>
@@ -795,26 +779,28 @@
      <activeon>../../artwork/icons/qudiTheme/22x22/stop-counter.png</activeon>../../artwork/icons/qudiTheme/22x22/start-counter.png</iconset>
    </property>
    <property name="text">
-    <string>run_stop</string>
+    <string>Start</string>
+   </property>
+   <property name="toolTip">
+    <string>Start or resume ODMR scan</string>
    </property>
   </action>
-  <action name="action_resume_odmr">
+  <action name="action_stop">
    <property name="checkable">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>../../artwork/icons/qudiTheme/22x22/restart-counter.png</normaloff>
-     <activeon>../../artwork/icons/qudiTheme/22x22/stop-counter.png</activeon>../../artwork/icons/qudiTheme/22x22/restart-counter.png</iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</iconset>
    </property>
    <property name="text">
-    <string>resume_odmr</string>
+    <string>Stop</string>
    </property>
    <property name="toolTip">
-    <string>resume odmr measurement</string>
+    <string>Stop ODMR scan</string>
    </property>
   </action>
   <action name="action_RestoreDefault">
@@ -833,15 +819,25 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>../../artwork/icons/oxygen/22x22/media-playback-start.png</normaloff>
-     <normalon>../../artwork/icons/oxygen/22x22/media-playback-stop.png</normalon>
-     <activeon>../../artwork/icons/oxygen/22x22/media-playback-stop.png</activeon>../../artwork/icons/oxygen/22x22/media-playback-start.png</iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/quickopen.png</normaloff>../../artwork/icons/oxygen/22x22/quickopen.png</iconset>
    </property>
    <property name="text">
-    <string>toggle_cw</string>
+    <string>CW output</string>
    </property>
    <property name="toolTip">
     <string>toggle microwave CW output</string>
+   </property>
+  </action>
+  <action name="action_clear">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</normaloff>../../artwork/icons/oxygen/22x22/edit-delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Clear</string>
+   </property>
+   <property name="toolTip">
+    <string>Clear ODMR data</string>
    </property>
   </action>
  </widget>

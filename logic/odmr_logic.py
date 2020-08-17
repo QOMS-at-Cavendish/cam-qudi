@@ -113,21 +113,17 @@ class ODMRLogic(GenericLogic):
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
+        
 
         # Set flags
         # for stopping a measurement
         self._stopRequested = False
-        # for clearing the ODMR data during a measurement
-        self._clearOdmrData = False
+        # in case of sweep parameters being updated, so the data arrays need
+        # to be resized
+        self._sweep_params_updated = False
 
         # Initalize the ODMR data arrays (mean signal and sweep matrix)
         self._initialize_odmr_plots()
-        # Raw data array
-        self.odmr_raw_data = np.zeros(
-            [self.number_of_lines,
-             len(self._odmr_counter.get_odmr_channels()),
-            self.odmr_plot_x.size]
-            )
 
         # Switch off microwave and set CW frequency and power
         self.mw_off()
@@ -201,6 +197,7 @@ class ODMRLogic(GenericLogic):
 
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
+        
         self.odmr_plot_x = np.arange(self.mw_start, self.mw_stop + self.mw_step, self.mw_step)
         self.odmr_plot_y = np.zeros([len(self.get_odmr_channels()), self.odmr_plot_x.size])
         self.odmr_fit_x = np.arange(self.mw_start, self.mw_stop + self.mw_step, self.mw_step)
@@ -208,6 +205,11 @@ class ODMRLogic(GenericLogic):
         self.odmr_plot_xy = np.zeros(
             [self.number_of_lines, len(self.get_odmr_channels()), self.odmr_plot_x.size])
         self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y, self.odmr_plot_xy)
+        self.odmr_raw_data = np.zeros(
+                    [1,
+                    len(self._odmr_counter.get_odmr_channels()),
+                    self.odmr_plot_x.size]
+                )
         current_fit = self.fc.current_fit
         self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
         return
@@ -418,6 +420,7 @@ class ODMRLogic(GenericLogic):
         param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop, 'mw_step': self.mw_step,
                       'sweep_mw_power': self.sweep_mw_power}
         self.sigParameterUpdated.emit(param_dict)
+        self._sweep_params_updated = True
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power
 
     def mw_cw_on(self):
@@ -581,59 +584,15 @@ class ODMRLogic(GenericLogic):
             self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
 
             self.module_state.lock()
-            self._clearOdmrData = False
+
             self.stopRequested = False
             self.fc.clear_result()
 
-            self.elapsed_sweeps = 0
-            self.elapsed_time = 0.0
-            self._startTime = time.time()
-            self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
-
-            odmr_status = self._start_odmr_counter()
-            if odmr_status < 0:
-                mode, is_running = self._mw_device.get_status()
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                self.module_state.unlock()
-                return -1
-
-            mode, is_running = self.mw_sweep_on()
-            if not is_running:
-                self._stop_odmr_counter()
-                self.module_state.unlock()
-                return -1
-
-            self._initialize_odmr_plots()
-            # initialize raw_data array
-            estimated_number_of_lines = self.run_time * self.clock_frequency / self.odmr_plot_x.size
-            estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
-            if estimated_number_of_lines < self.number_of_lines:
-                estimated_number_of_lines = self.number_of_lines
-            self.log.debug('Estimated number of raw data lines: {0:d}'
-                           ''.format(estimated_number_of_lines))
-            self.odmr_raw_data = np.zeros(
-                [estimated_number_of_lines,
-                 len(self._odmr_counter.get_odmr_channels()),
-                 self.odmr_plot_x.size]
-            )
-            self.sigNextLine.emit()
-            return 0
-
-    def continue_odmr_scan(self):
-        """ Continue ODMR scan.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        with self.threadlock:
-            if self.module_state() == 'locked':
-                self.log.error('Can not start ODMR scan. Logic is already locked.')
-                return -1
-
-            self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
-
-            self.module_state.lock()
-            self.stopRequested = False
-            self.fc.clear_result()
+            # If sweep parameters have been updated since last call,
+            # need to clear the data and re-initialise the buffers
+            if self._sweep_params_updated:
+                self._initialize_odmr_plots()
+                self._sweep_params_updated = False
 
             self._startTime = time.time() - self.elapsed_time
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
@@ -665,13 +624,15 @@ class ODMRLogic(GenericLogic):
         return 0
 
     def clear_odmr_data(self):
-        """¨Set the option to clear the curret ODMR data.
+        """¨Clear ODMR data and elapsed time
 
-        The clear operation has to be performed within the method
-        _scan_odmr_line. This method just sets the flag for that. """
+        Only works when a scan is not currently running
+        """
         with self.threadlock:
-            if self.module_state() == 'locked':
-                self._clearOdmrData = True
+            if self.module_state() != 'locked':
+                self.elapsed_sweeps = 0
+                self.elapsed_time = 0.0
+                self._initialize_odmr_plots()
         return
 
     def _scan_odmr_line(self):
@@ -692,11 +653,6 @@ class ODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return
 
-            # if during the scan a clearing of the ODMR data is needed:
-            if self._clearOdmrData:
-                self.elapsed_sweeps = 0
-                self._startTime = time.time()
-
             # reset position so every line starts from the same frequency
             self.reset_sweep()
 
@@ -708,29 +664,8 @@ class ODMRLogic(GenericLogic):
                 self.sigNextLine.emit()
                 return
 
-            # Add new count data to raw_data array and append if array is too small
-            if self._clearOdmrData:
-                self.odmr_raw_data[:, :, :] = 0
-                self._clearOdmrData = False
-            if self.elapsed_sweeps == (self.odmr_raw_data.shape[0] - 1):
-                expanded_array = np.zeros(self.odmr_raw_data.shape)
-                self.odmr_raw_data = np.concatenate((self.odmr_raw_data, expanded_array), axis=0)
-                self.log.warning('raw data array in ODMRLogic was not big enough for the entire '
-                                 'measurement. Array will be expanded.\nOld array shape was '
-                                 '({0:d}, {1:d}), new shape is ({2:d}, {3:d}).'
-                                 ''.format(self.odmr_raw_data.shape[0] - self.number_of_lines,
-                                           self.odmr_raw_data.shape[1],
-                                           self.odmr_raw_data.shape[0],
-                                           self.odmr_raw_data.shape[1]))
-
-            # shift data in the array "up" and add new data at the "bottom"
-            self.odmr_raw_data = np.roll(self.odmr_raw_data, 1, axis=0)
-
-            self.odmr_raw_data[0] = new_counts
-
-            # Add new count data to mean signal
-            if self._clearOdmrData:
-                self.odmr_plot_y[:, :] = 0
+            # Add new count data to raw_data array
+            self.odmr_raw_data = np.insert(self.odmr_raw_data, 0, new_counts, 0)
 
             if self.lines_to_average <= 0:
                 self.odmr_plot_y = np.mean(
@@ -745,8 +680,15 @@ class ODMRLogic(GenericLogic):
                     dtype=np.float64
                 )
 
-            # Set plot slice of matrix
-            self.odmr_plot_xy = self.odmr_raw_data[:self.number_of_lines, :, :]
+            # Get xy plot data
+            pad_amount = self.number_of_lines - self.odmr_raw_data.shape[0]
+            if pad_amount > 0:
+                # Pad out data if needed to fill the requested size of plot
+                self.odmr_plot_xy = np.concatenate((self.odmr_raw_data, 
+                                                   np.zeros((pad_amount, 
+                                                   *self.odmr_raw_data.shape[1:]))))
+            else:
+                self.odmr_plot_xy = self.odmr_raw_data[:self.number_of_lines, :, :]
 
             # Update elapsed time/sweeps
             self.elapsed_sweeps += 1
@@ -802,23 +744,17 @@ class ODMRLogic(GenericLogic):
             self.odmr_fit_x, self.odmr_fit_y, result_str_dict, self.fc.current_fit)
         return
 
-    def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
+    def save_odmr_data(self, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
         timestamp = datetime.datetime.now()
 
-        if tag is None:
-            tag = ''
         for nch, channel in enumerate(self.get_odmr_channels()):
             # two paths to save the raw data and the odmr scan data.
             filepath = self._save_logic.get_path_for_module(module_name='ODMR')
             filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
 
-            if len(tag) > 0:
-                filelabel = '{0}_ODMR_data_ch{1}'.format(tag, nch)
-                filelabel2 = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
-            else:
-                filelabel = 'ODMR_data_ch{0}'.format(nch)
-                filelabel2 = 'ODMR_data_ch{0}_raw'.format(nch)
+            filelabel = 'ODMR_data_ch{0}'.format(nch)
+            filelabel2 = 'ODMR_data_ch{0}_raw'.format(nch)
 
             # prepare the data in a dict or in an OrderedDict:
             data = OrderedDict()
