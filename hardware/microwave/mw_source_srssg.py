@@ -85,6 +85,8 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
                                              self._SERIALNUMBER,
                                              self._FIRMWARE_VERSION))
 
+        self._trig_warn = True
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module."""
 
@@ -207,8 +209,6 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
 
         # disable modulation:
         self._write('MODL 0')
-        # and the subtype (analog,)
-        self._write('STYP 0')
 
         if frequency is not None:
             error = self.set_frequency(frequency)
@@ -247,98 +247,98 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
         num_freq = len(frequency)
 
         if num_freq > self._MAX_LIST_ENTRIES:
-            self.log.error('The frequency list exceeds the hardware limitation '
+            raise ValueError('The frequency list exceeds the hardware limitation '
                            'of {0} list entries. Aborting creation of a list '
                            'due to potential overwrite of the firmware on the '
                            'device.'.format(self._MAX_LIST_ENTRIES))
-        else:
 
-            # ask for a new list
-            self._ask('LSTC? {0:d}'.format(num_freq))
+        # ask for a new list
+        self._ask('LSTC? {0:d}'.format(num_freq))
 
+        # Check power is in range
+        if power > self.get_limits().max_power or power < self.get_limits().min_power:
+            raise ValueError('Power out of range')
 
-            for index, entry in enumerate(frequency):
-                self._write('LSTP {0:d},{1:e},N,N,N,{2:f},N,N,N,N,N,N,N,N,N,N'
-                            ''.format(index, entry, power))
+        for index, entry in enumerate(frequency):
+            self._write('LSTP {0:d},{1:e},N,N,N,{2:f},N,N,N,N,N,N,N,N,N,N'
+                        ''.format(index, entry, power))
 
-            # the commands contains 15 entries, which are related to the
-            # following commands (in brackets the explanation), if parameter is
-            # specified as 'N', then it will be left unchanged.
-            #
-            #   '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15'
-            #
-            #   Position explanation:
-            #
-            #   1 = FREQ (frequency in exponential representation: e.g. 1.45e9)
-            #   2 = PHAS (phase in degree as float, e.g.45.0 )
-            #   3 = AMPL (Amplitude of LF in dBm as float, BNC output, e.g. -45.0)
-            #   4 = OFSL (Offset of LF in Volt as float, BNC output, e.g. 0.02)
-            #   5 = AMPR (Amplitude of RF in dBm as float, Type N output, e.g. -45.0)
-            #   6 = DISP (set the Front panel display type as integer)
-            #           0: Modulation Type
-            #           1: Modulation Function
-            #           2: Frequency
-            #           3: Phase
-            #           4: Modulation Rate or Period
-            #           5: Modulation Deviation or Duty Cycle
-            #           6: RF Type N Amplitude
-            #           7: BNC Amplitude
-            #           10: BNC Offset
-            #           13: I Offset
-            #           14: Q Offset
-            #   7 = Enable/Disable modulation by an integer number, with the
-            #       following bit meaning:
-            #           Bit 0: MODL (Enable modulation)
-            #           Bit 1: ENBL (Disable LF, BNC output)
-            #           Bit 2: ENBR (Disable RF, Type N output)
-            #           Bit 3:  -   (Disable Clock output)
-            #           Bit 4:  -   (Disable HF, RF doubler output)
-            #   8 = TYPE (Modulation type, integer number with the meaning)
-            #           0: AM/ASK   (amplitude modulation)
-            #           1: FM/FSK   (frequency modulation)
-            #           2: ΦM/PSK   (phase modulation)
-            #           3: Sweep
-            #           4: Pulse
-            #           5: Blank
-            #           7: QAM (quadrature amplitude modulation)
-            #           8: CPM (continuous phase modulation)
-            #           9: VSB (vestigial/single sideband modulation)
-            #   9 = Modulation function, integer number. Note that not all
-            #       values are valid in all modulation modes. In brackets
-            #       behind the possible modulation functions are denoted with
-            #       the meaning: MFNC = AM/FM/ΦM,  SFNC = Sweep,
-            #                    PFNC = Pulse/Blank, QFNC = IQ
-            #           0: Sine                 MFNC, SFNC,       QFNC
-            #           1: Ramp                 MFNC, SFNC,       QFNC
-            #           2: Triangle             MFNC, SFNC,       QFNC
-            #           3: Square               MFNC,       PFNC, QFNC
-            #           4: Phase noise          MFNC,       PFNC, QFNC
-            #           5: External             MFNC, SFNC, PFNC, QFNC
-            #           6: Sine/Cosine                            QFNC
-            #           7: Cosine/Sine                            QFNC
-            #           8: IQ Noise                               QFNC
-            #           9: PRBS symbols                           QFNC
-            #           10: Pattern (16 bits)                     QFNC
-            #           11: User waveform       MFNC, SFNC, PFNC, QFNC
-            #  10 = RATE/SRAT/(PPER, RPER)
-            #       Modulation rate in frequency as float, e.g. 20.4 (for 20.4kHz)
-            #       with the meaning
-            #  11 = (ADEP, ANDP)/(FDEV, FNDV)/(PDEV, PNDV)/SDEV/PWID
-            #       Modulation deviation in percent as float (e.g. 90.0 for 90%
-            #       modulation depth)
-            #  12 = Amplitude of clock output
-            #  13 = Offset of clock output
-            #  14 = Amplitude of HF (RF doubler output)
-            #  15 = Offset of rear DC
+        # the commands contains 15 entries, which are related to the
+        # following commands (in brackets the explanation), if parameter is
+        # specified as 'N', then it will be left unchanged.
+        #
+        #   '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15'
+        #
+        #   Position explanation:
+        #
+        #   1 = FREQ (frequency in exponential representation: e.g. 1.45e9)
+        #   2 = PHAS (phase in degree as float, e.g.45.0 )
+        #   3 = AMPL (Amplitude of LF in dBm as float, BNC output, e.g. -45.0)
+        #   4 = OFSL (Offset of LF in Volt as float, BNC output, e.g. 0.02)
+        #   5 = AMPR (Amplitude of RF in dBm as float, Type N output, e.g. -45.0)
+        #   6 = DISP (set the Front panel display type as integer)
+        #           0: Modulation Type
+        #           1: Modulation Function
+        #           2: Frequency
+        #           3: Phase
+        #           4: Modulation Rate or Period
+        #           5: Modulation Deviation or Duty Cycle
+        #           6: RF Type N Amplitude
+        #           7: BNC Amplitude
+        #           10: BNC Offset
+        #           13: I Offset
+        #           14: Q Offset
+        #   7 = Enable/Disable modulation by an integer number, with the
+        #       following bit meaning:
+        #           Bit 0: MODL (Enable modulation)
+        #           Bit 1: ENBL (Disable LF, BNC output)
+        #           Bit 2: ENBR (Disable RF, Type N output)
+        #           Bit 3:  -   (Disable Clock output)
+        #           Bit 4:  -   (Disable HF, RF doubler output)
+        #   8 = TYPE (Modulation type, integer number with the meaning)
+        #           0: AM/ASK   (amplitude modulation)
+        #           1: FM/FSK   (frequency modulation)
+        #           2: ΦM/PSK   (phase modulation)
+        #           3: Sweep
+        #           4: Pulse
+        #           5: Blank
+        #           7: QAM (quadrature amplitude modulation)
+        #           8: CPM (continuous phase modulation)
+        #           9: VSB (vestigial/single sideband modulation)
+        #   9 = Modulation function, integer number. Note that not all
+        #       values are valid in all modulation modes. In brackets
+        #       behind the possible modulation functions are denoted with
+        #       the meaning: MFNC = AM/FM/ΦM,  SFNC = Sweep,
+        #                    PFNC = Pulse/Blank, QFNC = IQ
+        #           0: Sine                 MFNC, SFNC,       QFNC
+        #           1: Ramp                 MFNC, SFNC,       QFNC
+        #           2: Triangle             MFNC, SFNC,       QFNC
+        #           3: Square               MFNC,       PFNC, QFNC
+        #           4: Phase noise          MFNC,       PFNC, QFNC
+        #           5: External             MFNC, SFNC, PFNC, QFNC
+        #           6: Sine/Cosine                            QFNC
+        #           7: Cosine/Sine                            QFNC
+        #           8: IQ Noise                               QFNC
+        #           9: PRBS symbols                           QFNC
+        #           10: Pattern (16 bits)                     QFNC
+        #           11: User waveform       MFNC, SFNC, PFNC, QFNC
+        #  10 = RATE/SRAT/(PPER, RPER)
+        #       Modulation rate in frequency as float, e.g. 20.4 (for 20.4kHz)
+        #       with the meaning
+        #  11 = (ADEP, ANDP)/(FDEV, FNDV)/(PDEV, PNDV)/SDEV/PWID
+        #       Modulation deviation in percent as float (e.g. 90.0 for 90%
+        #       modulation depth)
+        #  12 = Amplitude of clock output
+        #  13 = Offset of clock output
+        #  14 = Amplitude of HF (RF doubler output)
+        #  15 = Offset of rear DC
 
-            # enable the created list:
-            self._write('LSTE 1')
+        # enable the created list:
+        self._write('LSTE 1')
 
         self._internal_mode = 'list'    # now the device should be in list mode
-        curr_freq = self.get_frequency()
-        curr_power = self.get_power()
 
-        return frequency, curr_power, self._internal_mode
+        return frequency, power, self._internal_mode
 
     def reset_listpos(self):
         """ Reset of MW List Mode position to start from first given frequency
@@ -354,42 +354,19 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._internal_mode = 'sweep'
-        self.log.error('This was never tested!')
-        return self.on()
+        raise NotImplementedError
 
     def set_sweep(self, start, stop, step, power):
         """ Sweep from frequency start to frequency sto pin steps of width stop with power.
         """
-        # set the type
-        self._write('MODL 3')
-        # and the subtype
-        self._write('STYP 0')
-
-        sweep_length = stop - start
-        index = 0
-
-        time_per_freq =  2e-3 # in Hz, 2ms per point assumed for the beginning
-        # time it takes for a whole sweep, which is the rate of the sweep,
-        # i.e. rate = 1/ time_for_freq_range
-        rate = (sweep_length/step) * time_per_freq
-        mod_type = 5 # blank
-        mod_func = 3 # blank
-        self._write('LSTP {0:d},{1:e},N,N,N,{2:f},N,N,{3},{4},{5:e},{6:e},N,N,N,N'.format(index, start, power, mod_type, mod_func, rate, sweep_length))
-        self._internal_mode = 'sweep'
-
-        self.log.error('This was never tested!')
-
-        return start, stop, step, power, self._internal_mode
+        raise NotImplementedError
 
     def reset_sweeppos(self):
         """ Reset of MW sweep position to start
 
         @return int: error code (0:OK, -1:error)
         """
-        self._internal_mode = 'sweep'
-        self.log.error('This was never tested!')
-        return self.reset_listpos()
+        raise NotImplementedError
 
     def set_ext_trigger(self, pol, timing):
         """ Set the external trigger for this device with proper polarization.
@@ -401,9 +378,18 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
         @return object, float: current trigger polarity [TriggerEdge.RISING, TriggerEdge.FALLING],
             trigger timing
         """
+        # There isn't anywhere else to enable pulse modulation for lock-in, so do it here and
+        # warn about the unexpected behaviour
+        self.log.warning('Enabling external pulse modulation mode'
+            '- microwaves will be off if nothing is connected to MOD IN on rear panel')
+        if self._trig_warn:
+            self.log.warning('No external hardware trigger for sweeps, use odmr_software_trigger_interfuse')
+            self._trig_warn = False
+        
+        self._write('PFNC 5')   # External
+        self._write('TYPE 4')   # Pulse mod
+        self._write('MODL 1')   # Enable
 
-        self.log.warning('No external trigger channel can be set in this '
-                         'hardware. Method will be skipped.')
         return pol, timing
 
     def trigger(self):
