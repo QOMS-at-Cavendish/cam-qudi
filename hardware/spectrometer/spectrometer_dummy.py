@@ -22,6 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from core.module import Base
 from core.connector import Connector
 from interface.spectrometer_interface import SpectrometerInterface
+from interface.spectrometer_interface_ex import SpectrometerInterfaceEx
 
 from time import strftime, localtime
 
@@ -29,7 +30,7 @@ import time
 import numpy as np
 
 
-class SpectrometerInterfaceDummy(Base,SpectrometerInterface):
+class SpectrometerInterfaceDummy(Base,SpectrometerInterface,SpectrometerInterfaceEx):
     """ Dummy spectrometer module.
 
     Shows a silicon vacancy spectrum at liquid helium temperatures.
@@ -49,11 +50,105 @@ class SpectrometerInterfaceDummy(Base,SpectrometerInterface):
         """
         self._fitLogic = self.fitlogic()
         self.exposure = 0.1
+        self.wavelength = 5e-7
+
+        # Dict of supported parameters and limits
+        self.supported_params = {
+            'exposure_time':{
+                'set':True,
+                'get':True,
+                'min':0,
+                'max':120
+            },
+            'center_wavelength':{
+                'set':True,
+                'get':True,
+                'min':1e-9,
+                'max':2e-6
+            },
+            'detector_temp':{
+                'set':False,
+                'get':True,
+                'min':-1000,
+                'max':1000
+            }
+        }
 
     def on_deactivate(self):
         """ Deactivate module.
         """
         pass
+
+    #########################
+    # SpectrometerInterfaceEx
+    #########################
+
+    def acquire_spectrum(self):
+        return self.recordSpectrum()
+    
+    def set_parameter(self, parameter, value):
+        """Set a parameter on the spectrometer.
+
+        Block until parameter has been successfully set.
+
+        @param str parameter: Parameter to set. This can be one of:
+            - exposure_time (in seconds)
+            - center_wavelength (in metres)
+        @param value: Value to set
+
+        @raises: KeyError if the parameter is unsupported.
+        """
+        if self.supported_params[parameter]['set']:
+            time.sleep(1)
+            if parameter == 'exposure_time':
+                self.exposure = value
+            elif parameter == 'center_wavelength':
+                self.wavelength = value
+        else:
+            raise KeyError('Set is not supported on {}'.format(parameter))
+
+    def get_parameter(self, parameter):
+        """Get a parameter from the spectrometer.
+
+        @param str parameter: Parameter to get. This can be one of:
+            - exposure_time (in seconds)
+            - center_wavelength (in nanometres)
+            - detector_temp (in degrees C)
+        
+        @return: Value of requested parameter
+
+        @raises: KeyError if the parameter is unsupported.
+        """
+        if self.supported_params[parameter]['get']:
+            if parameter == 'exposure_time':
+                return self.exposure
+            elif parameter == 'center_wavelength':
+                return self.wavelength
+            elif parameter == 'detector_temp':
+                return -120
+        else:
+            raise KeyError('Get is not supported on {}'.format(parameter))
+
+    def get_supported_params(self):
+        """Get all supported parameters.
+
+        Returns a dictionary with the supported parameters as keys.
+        Values in the dict are also dicts, with the following keys:
+            - get: If the parameter can be read from the spectrometer (bool)
+            - set: If the parameter can be set on the spectrometer (bool)
+            - max: Maximum value
+            - min: Minimum value
+
+        @return dict params: Dict of all parameters.
+            Has the format 
+            {'<param_name>':{
+                {'get':True,
+                 'set':True,
+                 'max':<max_val>,
+                 'min':<min_val>}
+            }}
+        """
+        return self.supported_params
 
     def recordSpectrum(self):
         """ Record a dummy spectrum.
