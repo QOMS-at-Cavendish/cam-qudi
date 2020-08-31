@@ -22,6 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from qtpy import QtCore
 from collections import OrderedDict
 from .mutex import Mutex
+import copy
 
 
 class DictTableModel(QtCore.QAbstractTableModel):
@@ -166,12 +167,45 @@ class DictTableModel(QtCore.QAbstractTableModel):
 class ListTableModel(QtCore.QAbstractTableModel):
     """ Qt model storing a table in lists.
     """
+    data_changed_proxy = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
         self.lock = Mutex()
         self.headers = ['Name']
         self.storage = list()
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self.storage[index]
+        if len(index) != 2:
+            raise IndexError('Expect [row, col] subscript form')
+        return self.storage[index[0]][index[1]]
+
+    def __setitem__(self, index, value):
+        if len(index) != 2:
+            raise IndexError('Expect [row, col] subscript form')
+        self.storage[index[0]][index[1]] = value
+        self.emit_changed_signal()
+
+    def __iter__(self):
+        self._curr_idx = 0
+        return self
+
+    def __next__(self):
+        try:
+            val = self.storage[self._curr_idx]
+            self._curr_idx += 1
+            return val
+        except IndexError:
+            raise StopIteration
+
+    def emit_changed_signal(self):
+        self.data_changed_proxy.emit()
+
+    def actually_emit_changed_signal(self):
+        self.dataChanged.emit(self.index(0,0),
+                              self.index(self.rowCount(), self.columnCount()))
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         """ Gives the number of stored items.
@@ -207,12 +241,7 @@ class ListTableModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return None
         elif role == QtCore.Qt.DisplayRole:
-            if index.column() == 0:
-                return self.storage[index.row()]
-            # elif index.column() == 1:
-            #     return item[1].thread
-            else:
-                return None
+            return self.storage[index.row()][index.column()]
         else:
             return None
 
