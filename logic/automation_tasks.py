@@ -94,6 +94,37 @@ def refind_POI(automation_logic):
     
     return 'Completed'
 
+def optimize_position(automation_logic):
+    """Run the optimizer.
+
+    This is the same as clicking the 'Optimize' button in the confocal GUI.
+    """
+    optimizer_logic = automation_logic.optimizerlogic()
+    if optimizer_logic is None:
+        raise NameError('Please connect Optimizer logic module to automation')
+
+    confocal = automation_logic.confocallogic()
+    if confocal is None:
+        raise NameError('Please connect confocal logic module to automation')
+
+    optimizer_logic.start_refocus(caller_tag='Automation')
+    
+    # Wait for it to start
+    time.sleep(0.5)
+
+    # Wait for optimisation to finish
+    while optimizer_logic.module_state() == 'locked':
+        time.sleep(0.1)
+    time.sleep(0.1)
+    confocal.set_position('Automation',
+                          x=optimizer_logic.optim_pos_x,
+                          y=optimizer_logic.optim_pos_y,
+                          z=optimizer_logic.optim_pos_z)
+    
+    time.sleep(0.1)
+    
+    return 'Completed'
+
 def start_ODMR(automation_logic):
     """Start ODMR scan.
 
@@ -108,6 +139,8 @@ def start_ODMR(automation_logic):
 
     while odmr_logic.module_state() != 'locked':
         time.sleep(0.1)
+
+    time.sleep(1)
 
     return "Completed"
 
@@ -126,7 +159,38 @@ def stop_ODMR(automation_logic):
     while odmr_logic.module_state() == 'locked':
         time.sleep(0.1)
 
+    time.sleep(1)
+
     return "Completed"
+
+def start_hbt(automation_logic):
+    """Start HBT acquisition"""
+    hbt_logic = automation_logic.hbtlogic()
+    if hbt_logic is None:
+        raise NameError('Please connect HBT logic module to automation')
+
+    hbt_logic.start_hbt()
+
+def stop_hbt(automation_logic):
+    """Stop HBT acquisition"""
+    hbt_logic = automation_logic.hbtlogic()
+    if hbt_logic is None:
+        raise NameError('Please connect HBT logic module to automation')
+
+    hbt_logic.stop_hbt()
+
+def set_power(automation_logic, power):
+    """Set power on the AOM logic
+
+    Arg: power (in uW)
+    """
+
+    aom_logic = automation_logic.aomlogic()
+    if aom_logic is None:
+        raise NameError('Please connect AOM logic module to automation')
+
+    aom_logic.setpoint = power
+    return 'Completed'
 
 def acquire_confocal_scan(automation_logic):
     """Acquire confocal x,y map

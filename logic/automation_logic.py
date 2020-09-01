@@ -70,6 +70,7 @@ class AutomationLogic(GenericLogic):
     confocallogic = Connector(interface='ConfocalLogic', optional=True)
     odmrlogic = Connector(interface='ODMRLogic', optional=True)
     hbtlogic = Connector(interface='HbtLogic', optional=True)
+    aomlogic = Connector(interface='AomControlLogic', optional=True)
     spectrometerlogic = Connector(interface='SpectrometerLogic', optional=True)
     slacklogic = Connector(interface='SlackNotifierLogic', optional=True)
 
