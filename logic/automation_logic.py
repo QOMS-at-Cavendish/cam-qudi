@@ -37,14 +37,11 @@ class AutomationLogic(GenericLogic):
         model: core.util.models.ListTableModel containing the tasks to run.
             Each 'row' of the model is a task, and it contains 3 columns
             corresponding to:
+
             0. the name of the function to run (from `automation_tasks.py`)
             1. the arguments to the function, as a string
                 - this will be evaluated by `literal_eval` and therefore uses
                   Python syntax for positional arguments (i.e. `<arg1>, <arg2>` etc)
-                - Any positional arg can be set to a special string to get information;
-                    these will be replaced with the required value when the function
-                    is called.
-                    - '<iteration>': int, the current iteration number (one-based)
             2. the status of the function, which is either None, 'Running' or the
                 return value of the function.
 
@@ -65,14 +62,16 @@ class AutomationLogic(GenericLogic):
 
     NOTE: Add more connectors for optimizer, poimanager, hbt, spectro etc
         depending on which functions you need to use and what connectors they require.
-        See automation_tasks.py, or try it and look for NameErrors.
+        See automation_tasks.py, or try it and look for errors.
     """
     # Connectors
     optimizerlogic = Connector(interface='OptimizerLogic', optional=True)
     poimanagerlogic = Connector(interface='PoiManagerLogic', optional=True)
     confocallogic = Connector(interface='ConfocalLogic', optional=True)
+    odmrlogic = Connector(interface='ODMRLogic', optional=True)
     hbtlogic = Connector(interface='HbtLogic', optional=True)
     spectrometerlogic = Connector(interface='SpectrometerLogic', optional=True)
+    slacklogic = Connector(interface='SlackNotifierLogic', optional=True)
 
     # Internal signals
     _sig_run_task_list = QtCore.Signal()
@@ -110,14 +109,6 @@ class AutomationLogic(GenericLogic):
                     'func':func,
                     'description':func.__doc__
                 }
-        
-        self.connectors = {
-            'optimizer': self.optimizerlogic,
-            'poimanager': self.poimanagerlogic,
-            'confocal': self.confocallogic,
-            'hbt': self.hbtlogic,
-            'spectrometer': self.spectrometerlogic
-        }
 
         # Connect stuff
         self.connections = (
@@ -168,9 +159,9 @@ class AutomationLogic(GenericLogic):
         self.module_state.run()
         i = 0
         try:
-            start_loop_idx = 0
-            iterations = 1
-            max_iterations = 0
+            self.start_loop_idx = 0
+            self.iterations = 1
+            self.max_iterations = 0
             self.stop_requested = False
             while i < self.model.rowCount() and not self.stop_requested:
                 task = self.model[i]
@@ -179,20 +170,20 @@ class AutomationLogic(GenericLogic):
                 # Special tasks
                 ###############
                 if task[0] == 'start_loop':
-                    start_loop_idx = i + 1
-                    max_iterations = int(task[1])
-                    iterations = 1
+                    self.start_loop_idx = i + 1
+                    self.max_iterations = int(task[1])
+                    self.iterations = 1
                     i += 1
                     continue
                 elif task[0] == 'end_loop':
-                    if iterations == -1:
+                    if self.iterations == -1:
                         self.model[i, 2] = 'Finished'
                         i += 1
                         continue
-                    self.model[i, 2] = 'Run {} times'.format(iterations)
-                    if iterations < max_iterations or max_iterations == -1:
-                        i = start_loop_idx
-                        iterations += 1
+                    self.model[i, 2] = 'Run {} times'.format(self.iterations)
+                    if self.iterations < self.max_iterations or self.max_iterations == -1:
+                        i = self.start_loop_idx
+                        self.iterations += 1
                         continue
                     else:
                         i += 1
@@ -214,23 +205,19 @@ class AutomationLogic(GenericLogic):
                 # Translate argument string to dict:
                 try:
                     args = literal_eval('[' + task[1] + ']')
-                    # Look for special args and replace with their value
-                    for idx, arg in enumerate(args):
-                        if arg == '<iteration>':
-                            args[idx] = iterations
 
                 except ValueError:
                     self.log.error('Problem with argument string for task #{}'.format(i+1))
 
                 self.model[i, 2] = 'Running'
                 try:
-                    retval = func(self.connectors, *args)
+                    retval = func(self, *args)
                 except StopIteration:
                     self.model[i, 2] = 'StopIteration'
                     # Skip forward to end_loop
                     while i < self.model.rowCount():
                         if self.model[i, 0] == 'end_loop':
-                            iterations = -1
+                            self.iterations = -1
                             break
                         i += 1
                     continue
