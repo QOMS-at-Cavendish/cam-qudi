@@ -393,29 +393,24 @@ class OptimizerLogic(GenericLogic):
             data=xy_fit_data,
             estimator=self._fit_logic.estimate_twoDgaussian_MLE
         )
-        # print(result_2D_gaus.fit_report())
 
         if result_2D_gaus.success is False:
-            self.log.error('Error: 2D Gaussian Fit was not successfull!.')
-            print('2D gaussian fit not successfull')
+            self.log.error('XY optimisation failed: could not fit Gaussian')
             self.optim_pos_x = self._initial_pos_x
             self.optim_pos_y = self._initial_pos_y
             self.optim_sigma_x = 0.
             self.optim_sigma_y = 0.
         else:
-            #                @reviewer: Do we need this. With constraints not one of these cases will be possible....
-            if abs(self._initial_pos_x - result_2D_gaus.best_values['center_x']) < self._max_offset and abs(self._initial_pos_x - result_2D_gaus.best_values['center_x']) < self._max_offset:
-                if self.x_range[0] <= result_2D_gaus.best_values['center_x'] <= self.x_range[1]:
-                    if self.y_range[0] <= result_2D_gaus.best_values['center_y'] <= self.y_range[1]:
-                        self.optim_pos_x = result_2D_gaus.best_values['center_x']
-                        self.optim_pos_y = result_2D_gaus.best_values['center_y']
-                        self.optim_sigma_x = result_2D_gaus.best_values['sigma_x']
-                        self.optim_sigma_y = result_2D_gaus.best_values['sigma_y']
-            else:
-                self.optim_pos_x = self._initial_pos_x
-                self.optim_pos_y = self._initial_pos_y
-                self.optim_sigma_x = 0.
-                self.optim_sigma_y = 0.
+            optim_x = result_2D_gaus.best_values['center_x']
+            optim_y = result_2D_gaus.best_values['center_y']
+            self.optim_sigma_x = result_2D_gaus.best_values['sigma_x']
+            self.optim_sigma_y = result_2D_gaus.best_values['sigma_y']
+
+            # Clip to optimizer range
+            self.optim_pos_x = np.clip(optim_x, np.min(self._X_values), 
+                                                np.max(self._X_values))
+            self.optim_pos_y = np.clip(optim_y, np.min(self._Y_values),
+                                                np.max(self._Y_values))
 
         # emit image updated signal so crosshair can be updated from this fit
         self.sigImageUpdated.emit()
@@ -455,37 +450,19 @@ class OptimizerLogic(GenericLogic):
         self.z_params = result.params
 
         if result.success is False:
-            self.log.error('error in 1D Gaussian Fit.')
+            self.log.error('Z optimisation failed: could not fit Gaussian')
             self.optim_pos_z = self._initial_pos_z
             self.optim_sigma_z = 0.
-            # interrupt here?
-        else:  # move to new position
-            #                @reviewer: Do we need this. With constraints not one of these cases will be possible....
-            # checks if new pos is too far away
-            if abs(self._initial_pos_z - result.best_values['center']) < self._max_offset:
-                # checks if new pos is within the scanner range
-                if self.z_range[0] <= result.best_values['center'] <= self.z_range[1]:
-                    self.optim_pos_z = result.best_values['center']
-                    self.optim_sigma_z = result.best_values['sigma']
-                    gauss, params = self._fit_logic.make_gaussianlinearoffset_model()
-                    self.z_fit_data = gauss.eval(
-                        x=self._fit_zimage_Z_values, params=result.params)
-                else:  # new pos is too far away
-                    # checks if new pos is too high
-                    self.optim_sigma_z = 0.
-                    if result.best_values['center'] > self._initial_pos_z:
-                        if self._initial_pos_z + 0.5 * self.refocus_Z_size <= self.z_range[1]:
-                            # moves to higher edge of scan range
-                            self.optim_pos_z = self._initial_pos_z + 0.5 * self.refocus_Z_size
-                        else:
-                            self.optim_pos_z = self.z_range[1]  # moves to highest possible value
-                    else:
-                        if self._initial_pos_z + 0.5 * self.refocus_Z_size >= self.z_range[0]:
-                            # moves to lower edge of scan range
-                            self.optim_pos_z = self._initial_pos_z + 0.5 * self.refocus_Z_size
-                        else:
-                            self.optim_pos_z = self.z_range[0]  # moves to lowest possible value
-
+        else:  
+            # Clip to optimizer range
+            optim_z = result.best_values['center']
+            self.optim_pos_z = np.clip(optim_z, np.min(self._zimage_Z_values), 
+                                                np.max(self._zimage_Z_values))
+            self.optim_sigma_z = result.best_values['sigma']
+            gauss, params = self._fit_logic.make_gaussianlinearoffset_model()
+            self.z_fit_data = gauss.eval(x=self._fit_zimage_Z_values, 
+                                         params=result.params)
+            
         self.sigImageUpdated.emit()
         self._sigDoNextOptimizationStep.emit()
 
