@@ -40,6 +40,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
 
     # Config options
     remote_host = ConfigOption('remote_host', missing='error')
+    auth_token = ConfigOption('auth_token', missing='error')
     exposure_limits = ConfigOption('exposure_limits', default=[1e-6, 1e3])
     wavelength_limits = ConfigOption('wavelength_limits', default=[5e-7, 2e-6])
 
@@ -127,7 +128,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
         """
         if self.supported_params[parameter]['set']:
             param = {self.param_names[parameter]:value/self.param_factors[parameter]}
-            with winspec.WinspecClient(self.remote_host) as ws:
+            with winspec.WinspecClient(self.remote_host, self.auth_token) as ws:
                 ws.set_parameters(**param)
         else:
             raise KeyError('Set is not supported on {}'.format(parameter))
@@ -145,7 +146,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
         @raises: KeyError if the parameter is unsupported.
         """
         if self.supported_params[parameter]['get']:
-            with winspec.WinspecClient(self.remote_host) as ws:
+            with winspec.WinspecClient(self.remote_host, self.auth_token) as ws:
                 return ws.get_parameter(self.param_names[parameter])*self.param_factors[parameter]
         else:
             raise KeyError('Get is not supported on {}'.format(parameter))
@@ -182,7 +183,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
         @return 2D array: [wavelength[n], intensity[n]]
         """
         try:
-            with winspec.WinspecClient(self.remote_host) as spectro:
+            with winspec.WinspecClient(self.remote_host, self.auth_token) as spectro:
                 spect = spectro.acquire()
                 return np.array(spect)
         except winspec.WinspecError as err:
@@ -195,7 +196,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
         @return float: Exposure time in seconds.
         """
         try:
-            with winspec.WinspecClient(self.remote_host) as spectro:
+            with winspec.WinspecClient(self.remote_host, self.auth_token) as spectro:
                 return spectro.get_parameter('exposure_time')
         except winspec.WinspecError as err:
             self.log.error(str(err))
@@ -207,7 +208,7 @@ class WinspecRemote(Base, SpectrometerInterface, SpectrometerInterfaceEx):
         @param float exposureTime: Exposure time in seconds.
         """
         try:
-            with winspec.WinspecClient(self.remote_host) as spectro:
+            with winspec.WinspecClient(self.remote_host, self.auth_token) as spectro:
                 spectro.set_parameters(exposure_time=exposureTime)
         except winspec.WinspecError as err:
             self.log.error(str(err))
