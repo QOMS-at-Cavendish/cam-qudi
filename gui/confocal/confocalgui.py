@@ -937,7 +937,6 @@ class ConfocalGui(GUIBase):
         self._optimizer_logic.optimization_sequence = str(
             self._osd.optimization_sequence_lineEdit.text()
             ).upper().replace(" ", "").split(',')
-        self._optimizer_logic.check_optimization_sequence()
         # z fit parameters
         self._optimizer_logic.use_custom_params = self._osd.fit_tab.paramUseSettings
         self.update_roi_xy_size()
