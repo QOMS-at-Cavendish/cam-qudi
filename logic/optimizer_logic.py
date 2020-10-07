@@ -230,6 +230,10 @@ class OptimizerLogic(GenericLogic):
                     self._initialize_z_refocus_image()
                     self.do_z_optimization()
 
+                elif step == 'STEPZ':
+                    # Do stepwise Z refocus (better for open-loop scanning)
+                    self.do_stepwise_z()
+
                 else:
                     self.log.error('Unsupported optimization step {}'.format(step))
                 
@@ -240,7 +244,6 @@ class OptimizerLogic(GenericLogic):
             # Always leave in consistent state regardless of errors
             self.finish_refocus()
             self.module_state.unlock()
-
 
     def _initialize_xy_refocus_image(self):
         """Initialisation of the xy refocus image."""
@@ -385,7 +388,7 @@ class OptimizerLogic(GenericLogic):
     def do_z_optimization(self):
         """ Do the z axis optimization."""
         # z scaning
-        self._scan_z_line()
+        self._scan_z_line_refocus()
 
         # z-fit
         # If subtracting surface, then data can go negative and the gaussian fit offset constraints need to be adjusted
@@ -451,8 +454,8 @@ class OptimizerLogic(GenericLogic):
             self._caller_tag,
             [self.optim_pos_x, self.optim_pos_y, self.optim_pos_z, 0])
 
-    def _scan_z_line(self):
-        """Scans the z line for refocus."""
+    def _scan_z_line_refocus(self):
+        """Scans the z line for Gaussian refocus."""
 
         # Moves to the start value of the z-scan
         self._move_to_start_pos(
@@ -541,6 +544,44 @@ class OptimizerLogic(GenericLogic):
         if z is not None:
             self._current_z = z
         self.sigPositionChanged.emit(self._current_x, self._current_y, self._current_z)
+
+    def do_stepwise_z(self):
+        """Run stepwise Z optimisation"""
+        # TODO: Add variable parameters to confocal GUI settings
+        stepsize = 50e-9
+        max_steps = 10
+        for i in range(max_steps):
+            z_values = np.array([self.optim_pos_z, self.optim_pos_z + stepsize])
+            z_counts = self._scan_z_line(z_values)[:, self.opt_channel]
+            if z_counts[0] < z_counts[1]:
+                self.optim_pos_z = self.optim_pos_z + stepsize
+            else:
+                self.optim_pos_z = self.optim_pos_z - stepsize
+
+    def _scan_z_line(self, z_values):
+        """ Scan in Z along values provided in z_values
+
+        @param z_values: 1D Numpy array of Z values
+        @return np.array: 1D array of count values
+        """
+        n_ch = len(self._scanning_device.get_scanner_axes())
+
+        # defining trace of positions for z-refocus
+        scan_z_line = z_values
+        scan_x_line = self.optim_pos_x * np.ones(z_values.shape)
+        scan_y_line = self.optim_pos_y * np.ones(z_values.shape)
+
+        if n_ch <= 3:
+            line = np.vstack((scan_x_line, scan_y_line, scan_z_line)[0:n_ch])
+        else:
+            line = np.vstack((scan_x_line, scan_y_line, scan_z_line, np.zeros(scan_x_line.shape)))
+
+        # Perform scan
+        line_counts = self._scanning_device.scan_line(line)
+        if np.any(line_counts == -1):
+            raise OptimizerLogicError('Z scan went wrong, killing the scanner.')
+
+        return line_counts
 
 class OptimizerLogicError(Exception):
     """Exception for OptimizerLogic errors"""
