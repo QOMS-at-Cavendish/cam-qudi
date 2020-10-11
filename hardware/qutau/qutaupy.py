@@ -195,11 +195,11 @@ class QuTau:
         self.tdcbase.TDC_checkFeatureLifeTime.restype = ct.c_bool
 
         self.tdcbase.TDC_configureSignalConditioning.argtypes = [
-            ct.c_int, ct.c_int, ct.c_bool, ct.c_bool, ct.c_double]
+            ct.c_int, ct.c_int, ct.c_bool, ct.c_double]
         self.tdcbase.TDC_configureSignalConditioning.restype = ct.c_int
 
         self.tdcbase.TDC_getSignalConditioning.argtypes = [ct.c_int, ct.POINTER(
-            ct.c_bool), ct.POINTER(ct.c_bool), ct.POINTER(ct.c_bool), ct.POINTER(ct.c_double)]
+            ct.c_bool), ct.POINTER(ct.c_bool), ct.POINTER(ct.c_double)]
         self.tdcbase.TDC_getSignalConditioning.restype = ct.c_int
 
         self.tdcbase.TDC_getSyncDivider.argtypes = [
