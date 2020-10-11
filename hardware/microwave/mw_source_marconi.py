@@ -50,6 +50,7 @@ class MicrowaveMarconi(Base, MicrowaveInterface):
 
     _gpib_resource = ConfigOption('gpib_resource', 'GPIB0::22::INSTR', missing='warn')
     _gpib_timeout = ConfigOption('gpib_timeout', 100, missing='warn')
+    _max_power = ConfigOption('max_power', -13, missing='warn')
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -229,7 +230,7 @@ class MicrowaveMarconi(Base, MicrowaveInterface):
         limits.max_frequency = 2.4e9
 
         limits.min_power = -144
-        limits.max_power = -13
+        limits.max_power = self._max_power
 
         limits.list_minstep = 0.1
         limits.list_maxstep = 3.0e9
