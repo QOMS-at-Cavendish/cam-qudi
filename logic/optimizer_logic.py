@@ -204,6 +204,7 @@ class OptimizerLogic(GenericLogic):
         """
         self.module_state.lock()
         try:
+            self.start_scanner()
             for step in self.optimization_sequence:
                 # Run each step in the optimization sequence
                 if self.stop_requested.is_set():
@@ -241,7 +242,6 @@ class OptimizerLogic(GenericLogic):
                 time.sleep(0)
         
         finally:
-            # Always leave in consistent state regardless of errors
             self.finish_refocus()
             self.module_state.unlock()
 
