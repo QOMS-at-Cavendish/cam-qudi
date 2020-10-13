@@ -1820,7 +1820,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
             if self._scanner_counter_channels:
                 # create a new array for the final data (this time of the length
                 # number of samples)
-                real_data = np.zeros((self._odmr_length, ), dtype=np.uint32)
+                real_data = np.zeros((self._odmr_length, ), dtype=np.float64)
 
                 # add upp adjoint pixels to also get the counts from the low time of
                 # the clock:
@@ -1831,19 +1831,27 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                 if self._odmr_pulser_daq_task:
                     differential_data = np.zeros((self.oversampling * length, ), dtype=np.float64)
 
-                    differential_data += real_data[::2]
-                    differential_data -= real_data[1::2]
-                    differential_data = np.divide(differential_data, real_data[1::2],
+                    lockin_signal = real_data[::2]
+                    lockin_reference = real_data[1::2]
+                    differential_data = lockin_signal - lockin_reference
+                    self.log.debug('sig:{} ref:{} dif:{}'.format(lockin_signal.shape, lockin_reference.shape, differential_data.shape))
+                    differential_data = np.divide(differential_data, lockin_reference,
                                                   np.zeros_like(differential_data),
-                                                  where=real_data[1::2] != 0)
+                                                  where=lockin_reference != 0)
 
                     all_data[0] = np.median(np.reshape(differential_data,
                                                        (-1, self.oversampling)),
-                                            axis=1
-                                            )
+                                            axis=1)
+                    all_data[1] = np.median(np.reshape(lockin_signal,
+                                                       (-1, self.oversampling)),
+                                            axis=1)
+                    all_data[2] = np.median(np.reshape(lockin_reference,
+                                                       (-1, self.oversampling)),
+                                            axis=1)
+                    start_index += 3
                 else:
                     all_data[0] = np.array(real_data * self._scanner_clock_frequency, np.float64)
-                start_index += 1
+                    start_index += 1
 
             if self._scanner_ai_channels:
                 if self._odmr_pulser_daq_task:
@@ -1916,6 +1924,10 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
         ch = list()
         if self._scanner_counter_channels:
             ch.append(self._scanner_counter_channels[0])
+            if self._lock_in_active:
+                # Extra channels for sig/ref for lock-in measurements
+                ch.extend((self._scanner_counter_channels[0] + '_signal', 
+                           self._scanner_counter_channels[0] +'_reference'))
         ch.extend(self._scanner_ai_channels)
         return ch
 
