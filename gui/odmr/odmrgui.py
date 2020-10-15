@@ -214,67 +214,69 @@ class ODMRGui(GUIBase):
         #                       Connect signals                                #
         ########################################################################
         # Internal user input changed signals
-        self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
-        self._mw.start_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
-        self._mw.step_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
-        self._mw.stop_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
-        self._mw.sweep_power_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
-        self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
-        self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime)
-        self._mw.odmr_cb_max_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
-        self._mw.odmr_cb_min_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
-        self._mw.odmr_cb_high_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
-        self._mw.odmr_cb_low_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
-        self._mw.average_level_SpinBox.valueChanged.connect(self.average_level_changed)
-        # Internal trigger signals
-        self._mw.odmr_cb_manual_RadioButton.clicked.connect(self.colorscale_changed)
-        self._mw.odmr_cb_centiles_RadioButton.clicked.connect(self.colorscale_changed)
-        self._mw.action_clear.triggered.connect(self.clear_odmr_data)
-        self._mw.action_start.triggered.connect(self.run_odmr)
-        self._mw.action_stop.triggered.connect(self.stop_odmr)
-        self._mw.action_toggle_cw.triggered.connect(self.toggle_cw_mode)
-        self._mw.action_Save.triggered.connect(self.save_data)
-        self._mw.action_RestoreDefault.triggered.connect(self.restore_defaultview)
-        self._mw.do_fit_PushButton.clicked.connect(self.do_fit)
+        self._connections = (
+            self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params),
+            self._mw.start_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params),
+            self._mw.step_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params),
+            self._mw.stop_freq_DoubleSpinBox.editingFinished.connect(self.change_sweep_params),
+            self._mw.sweep_power_DoubleSpinBox.editingFinished.connect(self.change_sweep_params),
+            self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params),
+            self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime),
+            self._mw.odmr_cb_max_DoubleSpinBox.valueChanged.connect(self.colorscale_changed),
+            self._mw.odmr_cb_min_DoubleSpinBox.valueChanged.connect(self.colorscale_changed),
+            self._mw.odmr_cb_high_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed),
+            self._mw.odmr_cb_low_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed),
+            self._mw.average_level_SpinBox.valueChanged.connect(self.average_level_changed),
+            # Internal trigger signals
+            self._mw.odmr_cb_manual_RadioButton.clicked.connect(self.colorscale_changed),
+            self._mw.odmr_cb_centiles_RadioButton.clicked.connect(self.colorscale_changed),
+            self._mw.action_clear.triggered.connect(self.clear_odmr_data),
+            self._mw.action_start.triggered.connect(self.run_odmr),
+            self._mw.action_stop.triggered.connect(self.stop_odmr),
+            self._mw.action_toggle_cw.triggered.connect(self.toggle_cw_mode),
+            self._mw.action_Save.triggered.connect(self.save_data),
+            self._mw.action_RestoreDefault.triggered.connect(self.restore_defaultview),
+            self._mw.do_fit_PushButton.clicked.connect(self.do_fit),
 
-        # Control/values-changed signals to logic
-        self.sigCwMwOn.connect(self._odmr_logic.mw_cw_on, QtCore.Qt.QueuedConnection)
-        self.sigMwOff.connect(self._odmr_logic.mw_off, QtCore.Qt.QueuedConnection)
-        self.sigClearData.connect(self._odmr_logic.clear_odmr_data, QtCore.Qt.QueuedConnection)
-        self.sigStartOdmrScan.connect(self._odmr_logic.start_odmr_scan, QtCore.Qt.QueuedConnection)
-        self.sigStopOdmrScan.connect(self._odmr_logic.stop_odmr_scan, QtCore.Qt.QueuedConnection)
-        self.sigDoFit.connect(self._odmr_logic.do_fit, QtCore.Qt.QueuedConnection)
-        self.sigMwCwParamsChanged.connect(self._odmr_logic.set_cw_parameters,
-                                          QtCore.Qt.QueuedConnection)
-        self.sigMwSweepParamsChanged.connect(self._odmr_logic.set_sweep_parameters,
-                                             QtCore.Qt.QueuedConnection)
-        self.sigRuntimeChanged.connect(self._odmr_logic.set_runtime, QtCore.Qt.QueuedConnection)
-        self.sigNumberOfLinesChanged.connect(self._odmr_logic.set_matrix_line_number,
-                                             QtCore.Qt.QueuedConnection)
-        self.sigClockFreqChanged.connect(self._odmr_logic.set_clock_frequency,
-                                         QtCore.Qt.QueuedConnection)
-        self.sigOversamplingChanged.connect(self._odmr_logic.set_oversampling, QtCore.Qt.QueuedConnection)
-        self.sigLockInChanged.connect(self._odmr_logic.set_lock_in, QtCore.Qt.QueuedConnection)
-        self.sigSaveMeasurement.connect(self._odmr_logic.save_odmr_data, QtCore.Qt.QueuedConnection)
-        self.sigAverageLinesChanged.connect(self._odmr_logic.set_average_length,
-                                            QtCore.Qt.QueuedConnection)
+            # Control/values-changed signals to logic
+            self.sigCwMwOn.connect(self._odmr_logic.mw_cw_on, QtCore.Qt.QueuedConnection),
+            self.sigMwOff.connect(self._odmr_logic.mw_off, QtCore.Qt.QueuedConnection),
+            self.sigClearData.connect(self._odmr_logic.clear_odmr_data, QtCore.Qt.QueuedConnection),
+            self.sigStartOdmrScan.connect(self._odmr_logic.start_odmr_scan, QtCore.Qt.QueuedConnection),
+            self.sigStopOdmrScan.connect(self._odmr_logic.stop_odmr_scan, QtCore.Qt.QueuedConnection),
+            self.sigDoFit.connect(self._odmr_logic.do_fit, QtCore.Qt.QueuedConnection),
+            self.sigMwCwParamsChanged.connect(self._odmr_logic.set_cw_parameters,
+                                          QtCore.Qt.QueuedConnection),
+            self.sigMwSweepParamsChanged.connect(self._odmr_logic.set_sweep_parameters,
+                                             QtCore.Qt.QueuedConnection),
+            self.sigRuntimeChanged.connect(self._odmr_logic.set_runtime, QtCore.Qt.QueuedConnection),
+            self.sigNumberOfLinesChanged.connect(self._odmr_logic.set_matrix_line_number,
+                                             QtCore.Qt.QueuedConnection),
+            self.sigClockFreqChanged.connect(self._odmr_logic.set_clock_frequency,
+                                         QtCore.Qt.QueuedConnection),
+            self.sigOversamplingChanged.connect(self._odmr_logic.set_oversampling, QtCore.Qt.QueuedConnection),
+            self.sigLockInChanged.connect(self._odmr_logic.set_lock_in, QtCore.Qt.QueuedConnection),
+            self.sigSaveMeasurement.connect(self._odmr_logic.save_odmr_data, QtCore.Qt.QueuedConnection),
+            self.sigAverageLinesChanged.connect(self._odmr_logic.set_average_length,
+                                            QtCore.Qt.QueuedConnection),
 
-        # Update signals coming from logic:
-        self._odmr_logic.sigParameterUpdated.connect(self.update_parameter,
-                                                     QtCore.Qt.QueuedConnection)
-        self._odmr_logic.sigOutputStateUpdated.connect(self.update_status,
-                                                       QtCore.Qt.QueuedConnection)
-        self._odmr_logic.sigOdmrPlotsUpdated.connect(self.update_plots, QtCore.Qt.QueuedConnection)
-        self._odmr_logic.sigOdmrFitUpdated.connect(self.update_fit, QtCore.Qt.QueuedConnection)
-        self._odmr_logic.sigOdmrElapsedTimeUpdated.connect(self.update_elapsedtime,
-                                                           QtCore.Qt.QueuedConnection)
+            # Update signals coming from logic:
+            self._odmr_logic.sigParameterUpdated.connect(self.update_parameter,
+                                                     QtCore.Qt.QueuedConnection),
+            self._odmr_logic.sigOutputStateUpdated.connect(self.update_status,
+                                                       QtCore.Qt.QueuedConnection),
+            self._odmr_logic.sigOdmrPlotsUpdated.connect(self.update_plots, QtCore.Qt.QueuedConnection),
+            self._odmr_logic.sigOdmrFitUpdated.connect(self.update_fit, QtCore.Qt.QueuedConnection),
+            self._odmr_logic.sigOdmrElapsedTimeUpdated.connect(self.update_elapsedtime,
+                                                           QtCore.Qt.QueuedConnection),
 
-        # connect settings signals
-        self._mw.action_Settings.triggered.connect(self._menu_settings)
-        self._sd.accepted.connect(self.update_settings)
-        self._sd.rejected.connect(self.reject_settings)
-        self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(
-            self.update_settings)
+            # connect settings signals
+            self._mw.action_Settings.triggered.connect(self._menu_settings),
+            self._sd.accepted.connect(self.update_settings),
+            self._sd.rejected.connect(self.reject_settings),
+            self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(
+                    self.update_settings),
+        )
         self.reject_settings()
 
         # Show the Main ODMR GUI:
@@ -286,53 +288,8 @@ class ODMRGui(GUIBase):
         @return int: error code (0:OK, -1:error)
         """
         # Disconnect signals
-        self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.disconnect()
-        self._sd.accepted.disconnect()
-        self._sd.rejected.disconnect()
-        self._mw.action_Settings.triggered.disconnect()
-        self._odmr_logic.sigParameterUpdated.disconnect()
-        self._odmr_logic.sigOutputStateUpdated.disconnect()
-        self._odmr_logic.sigOdmrPlotsUpdated.disconnect()
-        self._odmr_logic.sigOdmrFitUpdated.disconnect()
-        self._odmr_logic.sigOdmrElapsedTimeUpdated.disconnect()
-        self.sigCwMwOn.disconnect()
-        self.sigMwOff.disconnect()
-        self.sigClearData.disconnect()
-        self.sigStartOdmrScan.disconnect()
-        self.sigStopOdmrScan.disconnect()
-        self.sigDoFit.disconnect()
-        self.sigMwCwParamsChanged.disconnect()
-        self.sigMwSweepParamsChanged.disconnect()
-        self.sigRuntimeChanged.disconnect()
-        self.sigNumberOfLinesChanged.disconnect()
-        self.sigClockFreqChanged.disconnect()
-        self.sigOversamplingChanged.disconnect()
-        self.sigLockInChanged.disconnect()
-        self.sigSaveMeasurement.disconnect()
-        self.sigAverageLinesChanged.disconnect()
-        self._mw.odmr_cb_manual_RadioButton.clicked.disconnect()
-        self._mw.odmr_cb_centiles_RadioButton.clicked.disconnect()
-        self._mw.action_clear.disconnect()
-        self._mw.action_start.triggered.disconnect()
-        self._mw.action_stop.triggered.disconnect()
-        self._mw.action_Save.triggered.disconnect()
-        self._mw.action_toggle_cw.triggered.disconnect()
-        self._mw.action_RestoreDefault.triggered.disconnect()
-        self._mw.do_fit_PushButton.clicked.disconnect()
-        self._mw.cw_frequency_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.start_freq_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.step_freq_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.stop_freq_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.cw_power_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.sweep_power_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.runtime_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.odmr_cb_max_DoubleSpinBox.valueChanged.disconnect()
-        self._mw.odmr_cb_min_DoubleSpinBox.valueChanged.disconnect()
-        self._mw.odmr_cb_high_percentile_DoubleSpinBox.valueChanged.disconnect()
-        self._mw.odmr_cb_low_percentile_DoubleSpinBox.valueChanged.disconnect()
-        self._mw.average_level_SpinBox.valueChanged.disconnect()
-        self._fsd.sigFitsUpdated.disconnect()
-        self._mw.action_FitSettings.triggered.disconnect()
+        for conn in self._connections:
+            QtCore.QObject.disconnect(conn)
         self._mw.close()
         return 0
 
@@ -401,6 +358,7 @@ class ODMRGui(GUIBase):
             self._mw.action_start.setEnabled(False)
             self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            self._mw.action_Save.setEnabled(True)
             if mw_mode != 'cw':
                 self._mw.action_clear.setEnabled(False)
                 self._mw.action_stop.setEnabled(True)
@@ -443,6 +401,7 @@ class ODMRGui(GUIBase):
             self._sd.oversampling_SpinBox.setEnabled(True)
             self._sd.lock_in_CheckBox.setEnabled(True)
             self._mw.action_toggle_cw.setChecked(False)
+            self._mw.action_Save.setEnabled(True)
 
         # Unblock signal firing
         self._mw.action_start.blockSignals(False)
@@ -707,6 +666,7 @@ class ODMRGui(GUIBase):
 
     def save_data(self):
         """ Save the sum plot, the scan marix plot and the scan data """
+        self._mw.action_Save.setEnabled(False)
         cb_range = self.get_matrix_cb_range()
 
         # Percentile range is None, unless the percentile scaling is selected in GUI.

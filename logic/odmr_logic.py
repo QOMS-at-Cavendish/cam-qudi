@@ -197,6 +197,10 @@ class ODMRLogic(GenericLogic):
 
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
+
+        self.elapsed_sweeps = 0
+        self.elapsed_time = 0.0
+        self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
         
         self.odmr_plot_x = np.arange(self.mw_start, self.mw_stop + self.mw_step, self.mw_step)
         self.odmr_plot_y = np.zeros([len(self.get_odmr_channels()), self.odmr_plot_x.size])
@@ -630,8 +634,6 @@ class ODMRLogic(GenericLogic):
         """
         with self.threadlock:
             if self.module_state() != 'locked':
-                self.elapsed_sweeps = 0
-                self.elapsed_time = 0.0
                 self._initialize_odmr_plots()
         return
 
@@ -806,6 +808,9 @@ class ODMRLogic(GenericLogic):
                                        timestamp=timestamp)
 
             self.log.info('ODMR data saved to:\n{0}'.format(filepath))
+        
+        mode, is_running = self._mw_device.get_status()
+        self.sigOutputStateUpdated.emit(mode, is_running)
         return
 
     def draw_figure(self, channel_number, cbar_range=None, percentile_range=None):
