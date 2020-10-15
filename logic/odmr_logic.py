@@ -753,8 +753,9 @@ class ODMRLogic(GenericLogic):
             filepath = self._save_logic.get_path_for_module(module_name='ODMR')
             filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
 
-            filelabel = 'ODMR_data_ch{0}'.format(nch)
-            filelabel2 = 'ODMR_data_ch{0}_raw'.format(nch)
+            # Label file with alphanumeric characters in channel name
+            filelabel = 'ODMR_{0}'.format("".join(x for x in channel if x.isalnum()))
+            filelabel2 = 'ODMR_{0}_raw'.format("".join(x for x in channel if x.isalnum()))
 
             # prepare the data in a dict or in an OrderedDict:
             data = OrderedDict()
@@ -766,12 +767,14 @@ class ODMRLogic(GenericLogic):
             parameters = OrderedDict()
             parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
             parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
-            parameters['Run Time (s)'] = self.run_time
+            parameters['Acquisiton Time (s)'] = self.elapsed_time
             parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
             parameters['Start Frequency (Hz)'] = self.mw_start
             parameters['Stop Frequency (Hz)'] = self.mw_stop
             parameters['Step size (Hz)'] = self.mw_step
             parameters['Clock Frequency (Hz)'] = self.clock_frequency
+            parameters['Lock-in'] = self._lock_in_active
+            parameters['Oversampling'] = self._oversampling
             parameters['Channel'] = '{0}: {1}'.format(nch, channel)
             if self.fc.current_fit != 'No Fit':
                 parameters['Fit function'] = self.fc.current_fit

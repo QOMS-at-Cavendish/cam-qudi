@@ -1834,7 +1834,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                     lockin_signal = real_data[::2]
                     lockin_reference = real_data[1::2]
                     differential_data = lockin_signal - lockin_reference
-                    self.log.debug('sig:{} ref:{} dif:{}'.format(lockin_signal.shape, lockin_reference.shape, differential_data.shape))
+
                     differential_data = np.divide(differential_data, lockin_reference,
                                                   np.zeros_like(differential_data),
                                                   where=lockin_reference != 0)
@@ -1842,10 +1842,10 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
                     all_data[0] = np.median(np.reshape(differential_data,
                                                        (-1, self.oversampling)),
                                             axis=1)
-                    all_data[1] = np.median(np.reshape(lockin_signal,
+                    all_data[1] = np.sum(np.reshape(lockin_signal,
                                                        (-1, self.oversampling)),
                                             axis=1)
-                    all_data[2] = np.median(np.reshape(lockin_reference,
+                    all_data[2] = np.sum(np.reshape(lockin_reference,
                                                        (-1, self.oversampling)),
                                             axis=1)
                     start_index += 3
