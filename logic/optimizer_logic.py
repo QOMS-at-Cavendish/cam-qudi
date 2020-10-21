@@ -26,6 +26,7 @@ import time
 from logic.generic_logic import GenericLogic
 from core.connector import Connector
 from core.statusvariable import StatusVar
+from core.configoption import ConfigOption
 import threading
 
 
@@ -37,6 +38,13 @@ class OptimizerLogic(GenericLogic):
     # declare connectors
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     fitlogic = Connector(interface='FitLogic')
+
+    # Config options
+    # STEPZ optimisation strategy
+    stepz_stepsize = ConfigOption('stepz_stepsize', default=5e-8)       # Step size (m)
+    stepz_maxiter = ConfigOption('stepz_maxiter', default=20)           # Max iterations (#)
+    stepz_oversampling = ConfigOption('stepz_oversampling', default=5)  # Oversampling per point (#)
+    stepz_tolerance = ConfigOption('stepz_tolerance', default=1e-3)     # Tolerance (fraction of counts)
 
     # declare status vars
     _clock_frequency = StatusVar('clock_frequency', 50)
@@ -547,16 +555,29 @@ class OptimizerLogic(GenericLogic):
 
     def do_stepwise_z(self):
         """Run stepwise Z optimisation"""
-        # TODO: Add variable parameters to confocal GUI settings
-        stepsize = 50e-9
-        max_steps = 10
+        stepsize = self.stepz_stepsize
+        max_steps = self.stepz_maxiter
+        oversampling = self.stepz_oversampling
+        tolerance = self.stepz_tolerance
+
         for i in range(max_steps):
-            z_values = np.array([self.optim_pos_z, self.optim_pos_z + stepsize])
+            z_values = np.concatenate((np.full(oversampling, self.optim_pos_z), 
+                                      np.full(oversampling, self.optim_pos_z + stepsize)))
             z_counts = self._scan_z_line(z_values)[:, self.opt_channel]
-            if z_counts[0] < z_counts[1]:
+            z_counts_1 = np.median(z_counts[:oversampling])
+            z_counts_2 = np.median(z_counts[oversampling:])
+
+            if np.abs(z_counts_1 - z_counts_2) < (tolerance*z_counts_1):
+                self.optim_pos_z = np.mean((self.optim_pos_z, self.optim_pos_z + stepsize))
+                self.log.debug('STEPZ hit target after {} iterations'.format(i))
+                break
+
+            if z_counts_1 < z_counts_2:
                 self.optim_pos_z = self.optim_pos_z + stepsize
             else:
                 self.optim_pos_z = self.optim_pos_z - stepsize
+        
+        self.log.debug('STEPZ finished with {} counts residual'.format(z_counts_1 - z_counts_2))
 
     def _scan_z_line(self, z_values):
         """ Scan in Z along values provided in z_values
