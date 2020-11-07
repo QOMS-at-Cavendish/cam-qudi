@@ -159,9 +159,11 @@ class QuTau(Base, SlowCounterInterface):
             self.qutau.init(-1)
         except qutaupy.QuTauError as err:
             if err.value == qutaupy.errors.TDC_NotConnected:
-                self.log.warn('No QuTau detected. Continuing in demo mode.')
+                self.log.error('No QuTau detected. Continuing in demo mode.')
             else:
                 raise err
+
+        self.log.debug('Using QuTools API version {}'.format(self.qutau.getVersion()))
 
         self.channel_bitmask = 0
         self.enabled_channels = []
@@ -217,9 +219,12 @@ class QuTau(Base, SlowCounterInterface):
         self.qutau.enableStartStop(enable)
         self.startstop_enabled = enable
 
-        for hist in histograms:
-            self.log.debug('Adding histogram {}'.format(hist))
-            self.qutau.addHistogram(*hist)
+        if self.qutau.getVersion() >= 10.0:
+            for hist in histograms:
+                self.log.debug('Adding histogram {}'.format(hist))
+                self.qutau.addHistogram(*hist)
+        else:
+            self.log.debug('Skip adding histograms due to API version < 10.0')
 
     def set_histogram_params(self, bin_width, bin_count):
         """ Sets parameters for the acquired start-stop histogram.

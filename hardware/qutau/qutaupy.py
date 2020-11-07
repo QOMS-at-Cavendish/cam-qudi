@@ -282,9 +282,6 @@ class QuTau:
         self.tdcbase.TDC_enableStartStop.argtypes = [ct.c_bool]
         self.tdcbase.TDC_enableStartStop.restype = ct.c_int
 
-        self.tdcbase.TDC_addHistogram.argtypes = [ct.c_int, ct.c_int, ct.c_int]
-        self.tdcbase.TDC_addHistogram.restype = ct.c_int
-
         self.tdcbase.TDC_setHistogramParams.argtypes = [ct.c_int, ct.c_int]
         self.tdcbase.TDC_setHistogramParams.restype = ct.c_int
 
@@ -931,6 +928,9 @@ class QuTau:
                        existing histogram is added or a missing
                        histogram is removed, nothing happens.
         """
+        self.tdcbase.TDC_addHistogram.argtypes = [ct.c_int, ct.c_int, ct.c_int]
+        self.tdcbase.TDC_addHistogram.restype = ct.c_int
+        
         rc = self.tdcbase.TDC_addHistogram(startCh, stopCh, add)
         if rc != 0:
             raise QuTauError(rc)
