@@ -195,7 +195,7 @@ class QuTau:
         self.tdcbase.TDC_checkFeatureLifeTime.restype = ct.c_bool
 
         self.tdcbase.TDC_configureSignalConditioning.argtypes = [
-            ct.c_int, ct.c_int, ct.c_bool, ct.c_double]
+            ct.c_int, ct.c_int, ct.c_bool, ct.c_bool, ct.c_double]
         self.tdcbase.TDC_configureSignalConditioning.restype = ct.c_int
 
         self.tdcbase.TDC_getSignalConditioning.argtypes = [ct.c_int, ct.POINTER(
@@ -362,19 +362,20 @@ class QuTau:
         """
         return self.tdcbase.TDC_checkFeatureLifeTime()
 
-    def configureSignalConditioning(self, channel, conditioning, edge, threshold):
+    def configureSignalConditioning(self, channel, conditioning, edge, term, threshold):
         """
         Configure signal conditioning for specific channel
         @param int channel: Channel number
         @param int conditioning: Signal conditioning (one of the values in the 
             enum TDC_SignalCond)
         @param bool edge: Rising (true) or falling (false) edge
+        @param bool term: 50 ohm termination on (true) or off (false)
         @param double threshold: Voltage threshold that is used to identify 
             events, in V. Allowed range is -2 ... 3V; internal resolution is 
             1.2mV
         """
         rc = self.tdcbase.TDC_configureSignalConditioning(
-            channel, conditioning, edge, threshold)
+            channel, conditioning, edge, term, threshold)
         if rc != 0:
             raise QuTauError(rc)
 
